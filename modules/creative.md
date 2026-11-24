@@ -8,7 +8,7 @@ Per ogni bozza del Piano Editoriale senza immagine crea una creatività col **te
 
 ## Step 1 — Cosa fare
 
-Nel Piano Editoriale (`notion.editorial_db`) prendi le righe con stato Bozza / In revisione / Da pubblicare, **senza immagine** (colonna Creatività vuota), con data di pubblicazione tra oggi e oggi+14 giorni, dalla più vicina. **Max 6 per run.** Salta le righe con data passata o vuota.
+In `DATA/posts/` prendi i post con stato Bozza / In revisione / Da pubblicare, **senza immagine** (`creativita` vuoto), con data di pubblicazione tra oggi e oggi+14 giorni, dalla più vicina. **Max 6 per run.** Salta le righe con data passata o vuota.
 
 ## Step 2 — Per ogni post
 
@@ -17,7 +17,7 @@ Nel Piano Editoriale (`notion.editorial_db`) prendi le righe con stato Bozza / I
 3. Scrivi lo spec JSON in `DATA/creative/<YYYY-MM-DD>-<slug>/spec.json` (campi in `GRAFICI.md`): `kicker`, `titolo` + `titolo_arancio` (l'hook diviso in due), `grafico`; `chiusura` solo se aggiunge qualcosa che l'immagine non dice.
 4. Genera: `python3 KIT/creative/bin/post_creative.py --spec <spec> --out <cartella> --config CONFIG --template DATA/creative/template.html --tokens DATA/creative/tokens.json` → `creativita.png` (2160×2700).
 5. **Guarda il PNG** (obbligatorio): coprendo il titolo, l'infografica da sola fa capire il post? Si legge da telefono? Niente testo tagliato o linee sopra le etichette? Se no, correggi lo spec e rigenera (max 3 tentativi).
-6. Allega l'immagine alla riga del Piano Editoriale, colonna Creatività, col caricamento file del connettore Notion. Se il tuo connettore non sa caricare file, lascia l'immagine dov'è e scrivi nel corpo della pagina una riga «🎨 Creatività pronta: apri il pannello di Nest Signal».
-7. Diario: `{"tipo":"creatività","titolo":"<hook>","link":"<pagina Notion>","immagine":"<percorso del PNG>"}`.
+6. Scrivi nel post `creativita` = percorso assoluto del PNG e `layout` = tipo di infografica. Se c'è Notion collegato, carica l'immagine anche nella colonna Creatività della riga corrispondente (se il connettore non sa caricare file, salta).
+7. Diario: `{"tipo":"creatività","titolo":"<hook>","link":"#/piano/<id>","immagine":"<percorso del PNG>"}`.
 
 Se Python 3 o Playwright mancano, fermati e scrivi nel log cosa installare (`pip3 install playwright && python3 -m playwright install chromium`, oppure `npm install playwright` nel kit).

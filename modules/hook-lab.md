@@ -8,7 +8,7 @@ Ogni settimana migliora `DATA/hook-library.md` con tre passaggi: **fuori** (cosa
 
 ## Step 0 — Chi, a chi, perché
 
-Da `CONFIG` (`audience.*`), `DATA/strategy.md`, `DATA/pain-map.md`, `notion.strategy_page`: ICP in una riga, 5-8 pain con la frase-specchio, cosa non si dice mai.
+Da `CONFIG` (`audience.*`), `DATA/strategy.md`, `DATA/pain-map.md`: ICP in una riga, 5-8 pain con la frase-specchio, cosa non si dice mai.
 
 ## Step 1 — Scouting (Claude in Chrome, ultimi 14 giorni, 25-40 post)
 
@@ -36,7 +36,7 @@ Appendi in `DATA/hook-swipe.md` (max 150 righe, togli le più vecchie):
 
 ## Step 4 — Validazione sui dati dell'autore
 
-1. Nel Piano Editoriale scrivi `Pattern hook` sui `Pubblicato` che non lo hanno (max 30 per run).
+1. In `DATA/posts/` scrivi `pattern_hook` sui post `Pubblicato` che non lo hanno (max 30 per run).
 2. Per pattern: n. post, conv media (indice del ledger), impressioni mediane, confronto con la media generale.
 3. Verdetto: ✅ **Validato** (≥ 3 post e conv ≥ media) · 🧪 **Da testare** (funziona fuori, fit sì, < 3 post nostri) · ❌ **Smentito** (≥ 3 post e conv < 0,7× media).
 4. Dove un hook esterno forte e un hook nostro debole parlano dello stesso pain: una riga su cosa cambia tra i due.

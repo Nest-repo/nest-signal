@@ -7,7 +7,7 @@ Scrive **1-2 proposte di post per run** nel Piano Editoriale, nella voce dell'au
 ## Step 0 — Contesto (sempre)
 
 Leggi, in quest'ordine di autorità:
-1. `DATA/strategy.md` (e `notion.strategy_page` se c'è: in caso di conflitto vince la pagina Notion).
+1. `DATA/strategy.md`.
 2. `DATA/performance-ledger.md` — sezione 1 "Regole che i dati confermano" = **vincoli**; sezione 4 "Flop" = cosa non rifare; sezione 6 = quali formati, CTA e temi portano persone.
 3. `DATA/hook-library.md` — sezione 0 (filtro forza, scritta dall'autore) prima di tutto; poi sezione 4 "Hook pronti per i pain" e "Da non usare".
 4. `DATA/persona.md` — come scrive l'autore. Vince su tutto quando si parla di stile.
@@ -15,7 +15,7 @@ Leggi, in quest'ordine di autorità:
 
 ## Step 1 — Riconciliazione leggera del Piano Editoriale
 
-Query sul Piano Editoriale: righe in `Bozza`/`In revisione` degli ultimi 30 giorni (per non duplicare temi) e `Pubblicato` degli ultimi 14 giorni (per variare). Se l'autore ha modificato una bozza prima di pubblicarla, la differenza è oro per il Voice refresh: non toccarla.
+Leggi `DATA/posts/`: post in `Bozza`/`In revisione` degli ultimi 30 giorni (per non duplicare temi) e `Pubblicato` degli ultimi 14 giorni (per variare). Se l'autore ha modificato una bozza prima di pubblicarla, la differenza è oro per il Voice refresh: non toccarla.
 
 ## Step 2 — Materiale (dall'ultimo run)
 
@@ -46,13 +46,13 @@ Prima di salvare rileggi il copy contro `persona.md` (sezione "cosa mi fa sembra
 
 ## Step 5 — Salva nel Piano Editoriale
 
-Una riga per proposta: `Name` = hook consigliato, `Status` = `Bozza`, `Data pubblicazione` = giorno scelto, `Funnel`, `CTA`, `Formato`, `Pattern hook`. Nel body: scheda di evidenza, hook, copy, replica/esperimento, da confermare.
+Un post per proposta in `DATA/posts/` (vedi `_common.md`): `titolo` = hook consigliato, `hooks` = gli altri hook con voto (`[{"testo":"…","voto":"🟢"}]`), `testo` e `testo_bozza` = il copy, `stato` = `Bozza`, `data` = giorno scelto, `funnel`, `cta`, `formato`, `pattern_hook`, `fonte` (scheda di evidenza in 2-3 righe + "Replica: …" o "Esperimento: …"), `da_confermare`. Se esiste già un post `Idea` sullo stesso tema, sviluppa quello invece di crearne uno nuovo.
 
 Zero proposte è un esito valido se il materiale è debole: meglio niente che 4 hook 🟡.
 
-La creatività non la fai tu: la genera il modulo Creatività sulle righe senza immagine. Scrivi il post in modo che il suo intento stia in una frase.
+La creatività non la fai tu: la genera il modulo Creatività sui post senza immagine. Scrivi il post in modo che il suo intento stia in una frase.
 
-Per ogni bozza aggiungi una riga al diario (`tipo: "bozza"`, `titolo`: l'hook, `link`: la pagina Notion).
+Per ogni bozza aggiungi una riga al diario (`tipo: "bozza"`, `titolo`: l'hook, `link`: `#/piano/<id>`).
 
 ## Step 6 — Report
 

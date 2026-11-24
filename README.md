@@ -7,6 +7,7 @@ Costruito da [Nest](https://usanest.it), growth partner per founder che vogliono
 ## Come funziona
 
 Un pannello locale (stile [Paperclip](https://github.com/paperclipai/paperclip)) con:
+- **Piano editoriale nel pannello**: bacheca per stato, calendario, scheda del post (testo, hook alternativi, immagine, approva, segna pubblicato);
 - **onboarding guidato nel browser**: la tua AI → chi sei → connessioni (Notion, browser, Slack, dove registri le call) → ICP e target (anche con proposta dell'AI) → modello comunicativo (l'AI legge i tuoi post) → **creatività** (carichi le tue reference o un file Figma e l'AI costruisce il **tuo** template: colori, font, cornice) → Piano Editoriale → moduli e orari;
 - **scheduler interno**: i moduli partono ai loro orari finché il pannello è acceso; pausa, "esegui ora" e log di ogni giro;
 - **la tua AI fa il lavoro**: Claude Code, OpenAI Codex CLI, Gemini CLI o qualsiasi comando che accetta un prompt (adapter).
@@ -33,7 +34,7 @@ Un pannello locale (stile [Paperclip](https://github.com/paperclipai/paperclip))
 
 - **Node.js 20+**
 - **Una AI da terminale**, con login fatto: [Claude Code](https://docs.claude.com/en/docs/claude-code) (consigliato), [Codex CLI](https://github.com/openai/codex) o [Gemini CLI](https://github.com/google-gemini/gemini-cli)
-- **Notion** (Piano Editoriale), collegato alla tua AI come server MCP
+- **Notion** facoltativo (copia del Piano editoriale, collegamento lead ↔ post)
 - **Browser per LinkedIn**: [Playwright MCP](https://github.com/microsoft/playwright-mcp) con un profilo dedicato (te lo configura l'onboarding) e `npm install playwright` per il login
 - **Python 3** per le creatività (usa Playwright per Python se c'è, altrimenti quello di Node)
 
@@ -53,6 +54,10 @@ npm start                         # pannello + routine (lascialo acceso)
 node bin/nest-signal.mjs status   # moduli e ultimi giri
 node bin/nest-signal.mjs run content-engine
 ```
+
+## Gestirlo con la tua AI
+
+Il Piano editoriale sta nel pannello (bacheca, calendario, scheda del post). Per modificarlo a parole apri la tua AI **in questa cartella** e chiedi, per esempio: «sposta il post sui lead a lunedì», «accorcia il post di giovedì», «rifai l'immagine del post X», «lancia l'Hook Lab adesso». Le istruzioni per l'AI sono in `AGENTS.md` (letto da Codex; `CLAUDE.md` e `GEMINI.md` lo richiamano per Claude Code e Gemini).
 
 ## Dove stanno i dati
 

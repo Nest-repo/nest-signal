@@ -70,7 +70,7 @@ function NestCTA({ cfg, title, text, cta }) {
 }
 
 // ---------- ONBOARDING ----------
-const STEPS = ["Benvenuto", "La tua AI", "Chi sei", "Connessioni", "ICP e target", "Come comunichi", "Creatività", "Piano Editoriale", "Moduli e orari", "Si parte"];
+const STEPS = ["Benvenuto", "La tua AI", "Chi sei", "Connessioni", "ICP e target", "Come comunichi", "Creatività", "Notion (facoltativo)", "Moduli e orari", "Si parte"];
 
 function Onboarding({ st, reload }) {
   const cfg = st.config;
@@ -328,9 +328,9 @@ function StepNotion({ draft, set, setDraft, next }) {
   const n = draft.notion; const job = useJob();
   const create = async () => { await post("/api/config", { notion: n }); job.start("setup", "notion-setup", async () => { const s = await api("/api/status"); setDraft({ ...draft, notion: s.config.notion }); }); };
   return html`<div class="stack">
-    <div class="kicker">Passo 8 · Notion</div>
-    <h2>Il Piano Editoriale</h2>
-    <p class="hint">È dove arrivano le bozze con la loro immagine, e dove approvi. Se ne hai già uno lo adattiamo aggiungendo solo le colonne che mancano.</p>
+    <div class="kicker">Passo 8 · Notion (facoltativo)</div>
+    <h2>Vuoi anche una copia in Notion?</h2>
+    <p class="hint">Il Piano Editoriale vive qui nel pannello (bacheca e calendario). Se lavori già in Notion, il sistema può tenerne una copia in un tuo database e collegare i lead del CRM ai post. Altrimenti salta questo passo.</p>
     <label>Database esistente (facoltativo)</label><input placeholder="link al database Notion, oppure lascia vuoto per crearlo" value=${n.editorial_db} onInput=${(e) => set("notion.editorial_db", e.target.value)} />
     <label>CRM in Notion (facoltativo: serve per collegare i lead ai post)</label><input placeholder="link al database del CRM" value=${n.crm_db} onInput=${(e) => set("notion.crm_db", e.target.value)} />
     <label>Canale Slack per i report (facoltativo)</label><input placeholder="ID canale, es. C0123ABC" value=${draft.delivery.slack_channel} onInput=${(e) => set("delivery.slack_channel", e.target.value)} />
@@ -402,7 +402,7 @@ const P = {
   chat: '<path d="M20.5 12a8.5 8.5 0 0 1-12.3 7.6L3.5 21l1.4-4.6A8.5 8.5 0 1 1 20.5 12z"/>',
 };
 const I = (n) => html`<svg class="i" viewBox="0 0 24 24" dangerouslySetInnerHTML=${{ __html: P[n] || "" }}></svg>`;
-const NAV = [["#/oggi", "Oggi", "oggi"], ["#/moduli", "Moduli", "moduli"], ["#/strategia", "Strategia", "strategia"], ["#/risultati", "Risultati", "risultati"], ["#/attivita", "Attività", "attivita"], ["#/impostazioni", "Impostazioni", "impostazioni"]];
+const NAV = [["#/oggi", "Oggi", "oggi"], ["#/piano", "Piano editoriale", "calendario"], ["#/moduli", "Moduli", "moduli"], ["#/strategia", "Strategia", "strategia"], ["#/risultati", "Risultati", "risultati"], ["#/attivita", "Attività", "attivita"], ["#/impostazioni", "Impostazioni", "impostazioni"]];
 const initials = (n) => (n || "?").split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 
 function Shell({ st, hash, children }) {
@@ -451,9 +451,9 @@ function Today({ st }) {
   const next = [...st.modules].filter((m) => m.enabled && m.next_run).sort((a, b) => a.next_run.localeCompare(b.next_run));
   const first = st.config.owner.name.split(" ")[0] || "";
   return html`<div>
-    <${Hero} kicker="Oggi" title=${html`Ciao ${first}, <em>ecco cosa c'è da guardare.</em>`} text="Le bozze arrivano nel tuo Piano Editoriale con la loro immagine: tu approvi e pubblichi.">
+    <${Hero} kicker="Oggi" title=${html`Ciao ${first}, <em>ecco cosa c'è da guardare.</em>`} text="Le bozze arrivano nel Piano editoriale con la loro immagine: tu approvi e pubblichi.">
       ${next[0] && html`<span class="chip">${I("orologio")} prossimo: ${next[0].name} · ${when(next[0].next_run)}</span>`}
-      ${st.config.notion.editorial_db && html`<a class="btn primary" href=${st.config.notion.editorial_db.startsWith("http") ? st.config.notion.editorial_db : "https://www.notion.so"} target="_blank" rel="noopener">Apri il Piano Editoriale ${I("freccia")}</a>`}
+      <a class="btn primary" href="#/piano">Apri il Piano editoriale ${I("freccia")}</a>
     <//>
     <div class="cols">
       <div class="card">
@@ -462,7 +462,7 @@ function Today({ st }) {
           ${feed.map((f) => html`<div class="feed-item">
             <div><b style="font-weight:500">${f.titolo || f.title}</b><div class="row" style="margin-top:6px"><span class="pill">${f.tipo || f.type}</span><span class="when">${f.modulo || f.module} · ${when(f.ts)}</span></div>
               ${f.immagine && html`<a href=${"/creative-img?p=" + encodeURIComponent(f.immagine)} target="_blank"><img src=${"/creative-img?p=" + encodeURIComponent(f.immagine)} style="width:150px;border-radius:10px;margin-top:10px;border:1px solid var(--line)" /></a>`}</div>
-            ${f.link && html`<a class="btn small ghost" href=${f.link} target="_blank" rel="noopener">Apri</a>`}</div>`)}</div>`}
+            ${f.link && html`<a class="btn small ghost" href=${f.link} target=${f.link.startsWith("http") ? "_blank" : undefined} rel="noopener">Apri</a>`}</div>`)}</div>`}
       </div>
       <div class="stack" style="margin:0">
         <${Question} />
@@ -570,6 +570,108 @@ function Settings({ st, reload }) {
   </div>`;
 }
 
+// ---------- PIANO EDITORIALE ----------
+const COLS = ["Idea", "Bozza", "In revisione", "Da pubblicare", "Pubblicato"];
+const shortDate = (d) => d ? new Date(d + (d.length === 10 ? "T12:00:00" : "")).toLocaleDateString("it-IT", { weekday: "short", day: "2-digit", month: "2-digit" }) : "senza data";
+const thumb = (p) => p.creativita ? "/creative-img?p=" + encodeURIComponent(p.creativita) : null;
+const toneOf = (s) => ({ "Da pubblicare": "run", Pubblicato: "ok", Scartato: "err", "In revisione": "warn" })[s] || "";
+
+function PostCard({ p }) {
+  return html`<a class="pcard" href=${"#/piano/" + p.id}>
+    ${thumb(p) && html`<img src=${thumb(p)} alt="" />`}
+    <div class="pt">${p.titolo || "(senza titolo)"}</div>
+    <div class="row" style="gap:6px;margin-top:8px"><span class="chip sm">${I("calendario")} ${shortDate(p.data)}</span>${p.funnel && html`<span class="chip sm">${p.funnel}</span>`}</div>
+  </a>`;
+}
+
+function Plan({ st, hash }) {
+  const [data, setData] = useState(null); const [view, setView] = useState("bacheca");
+  const load = () => api("/api/posts").then(setData);
+  useEffect(() => { load(); }, [hash]);
+  const id = hash.split("/")[2];
+  if (id) return html`<${PostDetail} id=${id} st=${st} back=${() => { location.hash = "#/piano"; }} />`;
+  if (!data) return html`<p class="hint">Carico…</p>`;
+  const posts = data.posts.filter((p) => p.stato !== "Scartato");
+  const n = (s) => posts.filter((p) => p.stato === s).length;
+  const add = async () => { const p = await post("/api/posts", { titolo: "Nuova idea", stato: "Idea" }); location.hash = "#/piano/" + p.id; };
+  return html`<div>
+    <${Hero} kicker="Piano editoriale" title=${html`I tuoi post, <em>dall'idea al pubblicato.</em>`} text="Il sistema scrive le bozze con la loro immagine. Tu le apri, le correggi, le approvi e le pubblichi. Puoi chiedere modifiche anche alla tua AI.">
+      <span class="chip">${n("Bozza") + n("In revisione")} da approvare</span><span class="chip">${n("Da pubblicare")} pronti</span>
+      <button class="btn primary" onClick=${add}>+ Nuova idea</button>
+    <//>
+    <div class="row" style="justify-content:space-between;margin-bottom:16px">
+      <div class="tabs"><button class=${"tab " + (view === "bacheca" ? "on" : "")} onClick=${() => setView("bacheca")}>Bacheca</button><button class=${"tab " + (view === "calendario" ? "on" : "")} onClick=${() => setView("calendario")}>Calendario</button></div>
+      <span class="hint">${posts.length} post · ${data.posts.length - posts.length} scartati</span>
+    </div>
+    ${view === "bacheca" ? html`<div class="board">${COLS.map((c) => html`<div class="bcol">
+        <div class="bhead"><span>${c}</span><span class="count">${n(c)}</span></div>
+        ${posts.filter((p) => p.stato === c).map((p) => html`<${PostCard} p=${p} />`)}
+        ${c === "Idea" && html`<button class="addcard" onClick=${add}>+ Aggiungi</button>`}
+      </div>`)}</div>` : html`<${Calendar} posts=${posts} />`}
+  </div>`;
+}
+
+function Calendar({ posts }) {
+  const start = new Date(); start.setHours(12, 0, 0, 0); start.setDate(start.getDate() - ((start.getDay() + 6) % 7) - 7);
+  const days = Array.from({ length: 28 }, (_, i) => { const d = new Date(start); d.setDate(start.getDate() + i); return d; });
+  const key = (d) => d.toISOString().slice(0, 10);
+  const today = key(new Date());
+  return html`<div class="cal">
+    ${["lun", "mar", "mer", "gio", "ven", "sab", "dom"].map((d) => html`<div class="cal-h">${d}</div>`)}
+    ${days.map((d) => html`<div class=${"cal-d " + (key(d) === today ? "today" : "") + (key(d) < today ? " past" : "")}>
+      <div class="cal-n">${d.getDate()}${d.getDate() === 1 || d === days[0] ? " " + d.toLocaleDateString("it-IT", { month: "short" }) : ""}</div>
+      ${posts.filter((p) => (p.data || "").slice(0, 10) === key(d)).map((p) => html`<a class=${"cal-p " + toneOf(p.stato)} href=${"#/piano/" + p.id}>${p.titolo || "(senza titolo)"}</a>`)}
+    </div>`)}
+  </div>`;
+}
+
+function PostDetail({ id, st, back }) {
+  const [p, setP] = useState(null); const [saved, setSaved] = useState(""); const [meta, setMeta] = useState({ stati: [], funnel: [] });
+  useEffect(() => { api(`/api/posts/${id}`).then(setP); api("/api/posts").then((d) => setMeta(d)); }, [id]);
+  if (!p) return html`<p class="hint">Carico…</p>`;
+  const set = (k, v) => { setP({ ...p, [k]: v }); setSaved(""); };
+  const save = async (patch) => { const n = await put(`/api/posts/${id}`, patch || p); setP(n); setSaved("Salvato"); };
+  const chars = (p.testo || "").length;
+  return html`<div>
+    <div class="row" style="margin-bottom:14px"><button class="btn small ghost" onClick=${back}>← Piano editoriale</button><span class=${"pill " + toneOf(p.stato)}>${p.stato}</span><span class="hint">${saved}</span></div>
+    <div class="cols wide">
+      <div class="card stack">
+        <div><label style="margin-top:0">Hook (prima riga e titolo)</label><input style="font-size:18px;font-weight:500" value=${p.titolo || ""} onInput=${(e) => set("titolo", e.target.value)} /></div>
+        ${p.hooks?.length > 0 && html`<div><div class="kicker">Altri hook proposti</div><div class="stack" style="margin-top:8px">${p.hooks.map((h) => html`<button class="hookopt" onClick=${() => set("titolo", typeof h === "string" ? h : h.testo)}>${typeof h === "string" ? h : `${h.voto || ""} ${h.testo}`}</button>`)}</div></div>`}
+        <div><label>Testo del post</label><textarea style="font-family:var(--sans);font-size:15px;line-height:1.6;min-height:380px" value=${p.testo || ""} onInput=${(e) => set("testo", e.target.value)}></textarea>
+          <p class="hint" style="margin-top:6px">${chars} caratteri${chars > 3000 ? " · oltre il limite di LinkedIn (3.000)" : ""}</p></div>
+        ${p.da_confermare && html`<div class="card soft"><b>Da confermare prima di pubblicare</b><p class="hint" style="margin-top:6px;white-space:pre-wrap">${p.da_confermare}</p></div>`}
+        <div class="row">
+          <button class="btn primary" onClick=${() => save()}>Salva</button>
+          <button class="btn" onClick=${() => { navigator.clipboard.writeText(`${p.testo || ""}`); setSaved("Testo copiato"); }}>Copia testo</button>
+          ${["Bozza", "In revisione", "Idea"].includes(p.stato) && html`<button class="btn dark" onClick=${() => save({ ...p, stato: "Da pubblicare" })}>Approva</button>`}
+          ${p.stato === "Da pubblicare" && html`<button class="btn dark" onClick=${() => { const l = prompt("Link del post pubblicato su LinkedIn"); if (l) save({ ...p, stato: "Pubblicato", link_live: l }); }}>Segna come pubblicato</button>`}
+          ${p.stato !== "Scartato" && html`<button class="btn ghost" onClick=${() => save({ ...p, stato: "Scartato" })}>Scarta</button>`}
+        </div>
+      </div>
+      <div class="stack" style="margin:0">
+        <div class="card">
+          <h3>Immagine</h3>
+          ${thumb(p) ? html`<a href=${thumb(p)} target="_blank"><img src=${thumb(p) + "&t=" + Date.now()} style="width:100%;border-radius:12px;border:1px solid var(--line);margin-top:12px" /></a>` : html`<p class="hint">Arriva col prossimo giro del modulo Creatività (post con data nei prossimi 14 giorni).</p>`}
+          <div class="row" style="margin-top:12px"><button class="btn small" onClick=${async () => { await save({ ...p, creativita: "" }); await post("/api/run", { kind: "module", target: "creative" }); setSaved("Immagine in rigenerazione"); }}>${thumb(p) ? "Rigenera" : "Generala ora"}</button></div>
+        </div>
+        <div class="card">
+          <h3>Dettagli</h3>
+          <label>Stato</label><select value=${p.stato} onChange=${(e) => set("stato", e.target.value)}>${meta.stati.map((s) => html`<option>${s}</option>`)}</select>
+          <label>Data di pubblicazione</label><input type="date" value=${(p.data || "").slice(0, 10)} onInput=${(e) => set("data", e.target.value)} />
+          <label>Funzione</label><select value=${p.funnel || ""} onChange=${(e) => set("funnel", e.target.value)}><option value="">—</option>${meta.funnel.map((s) => html`<option>${s}</option>`)}</select>
+          <label>CTA</label><input value=${p.cta || ""} onInput=${(e) => set("cta", e.target.value)} />
+          ${p.link_live && html`<label>Link</label><a href=${p.link_live} target="_blank" rel="noopener">${p.link_live}</a>`}
+          ${p.fonte && html`<label>Da dove nasce</label><p class="hint">${p.fonte}</p>`}
+          <div class="row" style="margin-top:16px"><button class="btn primary small" onClick=${() => save()}>Salva</button></div>
+        </div>
+        ${p.metriche && Object.keys(p.metriche).length > 0 && html`<div class="card"><h3>Risultati</h3>${Object.entries(p.metriche).map(([k, v]) => html`<div class="check"><span style="flex:1;text-transform:capitalize">${k.replace(/_/g, " ")}</span><b>${v}</b></div>`)}</div>`}
+        <div class="card soft"><b>Vuoi cambiarlo con l'AI?</b><p class="hint" style="margin-top:6px">Apri la tua AI nella cartella di Nest Signal e scrivi, ad esempio: «nel post <i>${(p.titolo || "").slice(0, 40)}…</i> accorcia il testo e rendi l'hook più diretto».</p></div>
+      </div>
+    </div>
+  </div>`;
+}
+
 // ---------- APP ----------
 function App() {
   const hash = useHash();
@@ -579,8 +681,8 @@ function App() {
   if (err && !st) return html`<div class="main"><h2>Il pannello non risponde</h2><p class="hint">${err}. Riprovo da solo ogni 15 secondi: controlla che nest-signal sia acceso.</p></div>`;
   if (!st) return html`<div class="main"><p class="hint">Avvio…</p></div>`;
   if (!st.config.onboarding.done || hash.startsWith("#/onboarding")) return html`<${Onboarding} st=${st} reload=${reload} />`;
-  const Page = { "#/oggi": Today, "#/moduli": Modules, "#/strategia": Strategy, "#/risultati": Results, "#/attivita": Activity, "#/impostazioni": Settings }[hash.split("?")[0]] || Today;
-  return html`<${Shell} st=${st} hash=${hash}><${Page} st=${st} reload=${reload} /><//>`;
+  const Page = { "#/oggi": Today, "#/piano": Plan, "#/moduli": Modules, "#/strategia": Strategy, "#/risultati": Results, "#/attivita": Activity, "#/impostazioni": Settings }["#/" + (hash.split("?")[0].split("/")[1] || "oggi")] || Today;
+  return html`<${Shell} st=${st} hash=${hash}><${Page} st=${st} reload=${reload} hash=${hash} /><//>`;
 }
 
 render(html`<${App} />`, document.getElementById("app"));

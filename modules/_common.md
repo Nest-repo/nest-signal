@@ -28,7 +28,12 @@ Leggile prima del modulo. I percorsi `KIT`, `DATA`, `CONFIG` e `PROFILO BROWSER`
 ## Fonti
 
 - **Meeting**: `meetings.source` dice dove il cliente registra le call (`notion`, `granola`, `fireflies`, `notta`, `tldv`, `drive`, `altro`, `nessuno`) e `meetings.details` dove trovarle. Usa il connettore corrispondente se ce l'hai; se non ce l'hai o la fonte è `nessuno`, salta e scrivilo nel feed una volta a settimana (`tipo: "suggerimento"`, `titolo: "Colleghiamo le call: Nest ti aiuta a impostarlo"`, `link`: `nest.booking_url`).
-- **Notion**: Piano Editoriale in `notion.editorial_db`; prima di una query fai `notion-fetch` per avere i nomi esatti delle colonne. Colonne attese in `KIT/setup/notion-setup.md`.
+- **Piano Editoriale** = `DATA/posts/`, **un file JSON per post** (il pannello lo mostra come bacheca e calendario). Campi:
+  `{"id","titolo"(= hook, prima riga),"testo","hooks":[...],"stato":"Idea|Bozza|In revisione|Da pubblicare|Pubblicato|Scartato","data":"YYYY-MM-DD","funnel":"Reach|Connection|Authority|Conversion|Referral","formato","cta","pattern_hook","creativita":"<percorso PNG>","layout","link_live","metriche":{"impressioni","interazioni","commenti","repost","follower_acquisiti","visite_profilo","lead","metriche_al"},"fonte","da_confermare","note","autore","testo_bozza","notion_url","created","updated"}`
+  - **Crea** un post con `curl -s -X POST http://127.0.0.1:3210/api/posts -H "X-Nest-Signal: 1" -H "Content-Type: application/json" -d '<json>'` (se il pannello è acceso), altrimenti scrivi direttamente `DATA/posts/<id>.json` con `id` = `<timestamp base36>-<slug>`. **Aggiorna** modificando solo i campi che ti servono e `updated`.
+  - `testo_bozza` = il testo come l'hai scritto tu: non cambiarlo mai dopo (serve al Voice refresh per vedere cosa ha corretto l'autore).
+  - Non cancellare file: per togliere un post usa `stato: "Scartato"`.
+- **Notion (facoltativo)**: se `notion.editorial_db` è impostato, dopo aver scritto nel piano locale crea/aggiorna anche la riga corrispondente in Notion (e salva il suo URL in `notion_url`). Il piano locale resta la fonte di verità: se l'autore ha cambiato qualcosa in Notion, riporta la modifica nel file.
 - **LinkedIn**: solo con il browser di Nest Signal (Playwright MCP sul profilo `PROFILO BROWSER`, o il browser che la tua AI ha collegato). **Sola lettura, sempre**: mai pubblicare, commentare, mettere like, inviare inviti o messaggi. Pausa 2-4 secondi tra le pagine. Se LinkedIn chiede il login o il browser non c'è: salta quelle parti, fai il resto, scrivilo nel log.
 
 ## Lingua
@@ -38,7 +43,7 @@ Post, bozze e report nella lingua `owner.language`.
 ## Diario per il pannello (obbligatorio)
 
 Per ogni cosa che produci aggiungi **una riga JSON** in fondo a `DATA/feed.jsonl`:
-`{"ts":"<ISO>","modulo":"<id>","tipo":"bozza|creatività|commento|report|regola|suggerimento","titolo":"<max 90 caratteri>","link":"<url Notion o LinkedIn, se c'è>"}`
+`{"ts":"<ISO>","modulo":"<id>","tipo":"bozza|creatività|commento|report|regola|suggerimento","titolo":"<max 90 caratteri>","link":"#/piano/<id del post> oppure un URL, se c'è"}`
 Mai riscrivere le righe esistenti.
 
 ## Report

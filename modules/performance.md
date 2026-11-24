@@ -6,11 +6,11 @@ Misura ogni post pubblicato, attribuisce i lead al post da cui arrivano e tiene 
 
 ## Step 1 — Post da misurare
 
-Dal Piano Editoriale: `Status = Pubblicato` con `Link Post Live` valorizzato.
+Da `DATA/posts/`: post con `stato: Pubblicato` e `link_live` valorizzato.
 - tutti quelli pubblicati negli ultimi 30 giorni;
 - i più vecchi con `Metriche al` vuoto (backfill), max 15 per run.
 
-ID attività: regex `activity[:-](\d{19})` su `Link Post Live`. Se manca, cercalo nella pagina `https://www.linkedin.com/analytics/creator/top-posts/?metricType=IMPRESSIONS&timeRange=past_28_days` facendo match sui primi 60 caratteri dell'hook; se non lo trovi, salta il post.
+ID attività: regex `activity[:-](\d{19})` su `link_live`. Se manca, cercalo nella pagina `https://www.linkedin.com/analytics/creator/top-posts/?metricType=IMPRESSIONS&timeRange=past_28_days` facendo match sui primi 60 caratteri dell'hook; se non lo trovi, salta il post.
 
 ## Step 2 — Metriche (Claude in Chrome)
 
@@ -33,7 +33,7 @@ Per ogni post: `https://www.linkedin.com/analytics/post-summary/urn:li:activity:
 
 ## Step 3 — Scrivi
 
-In Piano Editoriale: `Impressioni`, `Interazioni`, `Commenti`, `Repost`, `Follower acquisiti`, `Visite profilo`, `Metriche al` = oggi. Se un valore letto è minore di quello già salvato, tieni il vecchio (errore di lettura). Appendi una riga JSON per post in `DATA/state/performance-snapshots.jsonl`: `{"date","page","activity","impr","reach","followers","profile_visits","comments","reposts","saves","promoted","age_days","company_size","seniority"}`.
+Nel post, oggetto `metriche`: `impressioni`, `interazioni`, `commenti`, `repost`, `follower_acquisiti`, `visite_profilo`, `metriche_al` = oggi (e `lead` = n. lead attribuiti). Se un valore letto è minore di quello già salvato, tieni il vecchio (errore di lettura). Appendi una riga JSON per post in `DATA/state/performance-snapshots.jsonl`: `{"date","page","activity","impr","reach","followers","profile_visits","comments","reposts","saves","promoted","age_days","company_size","seniority"}`.
 
 ## Step 4 — Attribuzione dei lead (solo se c'è `notion.crm_db`)
 
@@ -47,7 +47,7 @@ Certo/probabile: imposta la relation verso il post e una riga nel body della sch
 
 ## Step 5 — Riscrivi `DATA/performance-ledger.md`
 
-Ricostruiscilo da Notion + snapshots. La sezione `## Note dell'autore` si ricopia verbatim.
+Ricostruiscilo dai post + snapshots. La sezione `## Note dell'autore` si ricopia verbatim.
 
 Indice di conversione (solo post con impressioni ≥ `performance.min_impressions`):
 `conv = (followers×w.followers + profile_visits×w.profile_visits + comments×w.comments + leads×w.leads) / impressioni × 1000` con i pesi di `performance.conversion_weights`.

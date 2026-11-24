@@ -8,6 +8,7 @@ import { MODULES, SETUP_JOBS, moduleSettings } from "./modules.mjs";
 import { ADAPTERS, detect, mcpServers } from "./adapters.mjs";
 import { enqueue, runs, runLog, recover } from "./runner.mjs";
 import { reschedule, nextRuns } from "./scheduler.mjs";
+import { listPosts, getPost, createPost, updatePost, STATI, FUNNEL } from "./posts.mjs";
 
 const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".json": "application/json" };
 const VENDOR = {
@@ -58,6 +59,8 @@ const routes = {
   "GET /api/feed": async () => readFeed(),
   "POST /api/run": async (b) => enqueue(b.kind === "setup" ? "setup" : "module", b.target, "manuale"),
   "POST /api/onboarding/finish": async () => { const c = saveConfig({ onboarding: { done: true, step: 99 } }); reschedule(); return c; },
+  "GET /api/posts": async () => ({ posts: listPosts(), stati: STATI, funnel: FUNNEL }),
+  "POST /api/posts": async (b) => createPost(b),
   "GET /api/question": async () => {
     const p = path.join(DATA, "state", "daily-question.json");
     return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, "utf8")) : null;
@@ -118,6 +121,10 @@ const server = http.createServer(async (req, res) => {
       if ((m = /^\/api\/data\/([a-z-]+\.md)$/.exec(url.pathname)) && EDITABLE.includes(m[1])) {
         if (req.method === "GET") return send(res, 200, { name: m[1], content: readData(m[1]) });
         if (req.method === "PUT") { writeData(m[1], (await readBody(req)).content || ""); return send(res, 200, { ok: true }); }
+      }
+      if ((m = /^\/api\/posts\/([a-z0-9-]+)$/.exec(url.pathname))) {
+        if (req.method === "GET") return send(res, 200, getPost(m[1]));
+        if (req.method === "PUT") return send(res, 200, updatePost(m[1], await readBody(req)));
       }
       if (req.method === "GET" && (m = /^\/api\/drafts\/([a-z-]+)$/.exec(url.pathname))) {
         const p = path.join(DATA, "drafts", `${m[1]}.json`);
