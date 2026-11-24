@@ -56,3 +56,5 @@ Se `delivery.slack_channel` è valorizzato: messaggio breve col connettore Slack
 ## Stato
 
 Lavora su "dall'ultimo run" (in `DATA/state/<modulo>.json`), non su "oggi": il computer può essere stato spento.
+
+**Esito (obbligatorio, alla fine)**: in `DATA/state/<modulo>.json` scrivi anche `"esito": {"livello": "completo|parziale|bloccato", "saltato": [...], "nota": "<una riga per il cliente>", "ts": "<ISO di adesso>"}`. `saltato` usa solo: `browser` (browser non collegato), `linkedin` (LinkedIn ha chiesto il login), `meetings` (call non raggiungibili), `python`, `icp`. **parziale** = hai fatto il resto ma hai saltato qualcosa; **bloccato** = non hai potuto fare il lavoro principale. Il pannello lo mostra al cliente con il modo per sistemarlo.

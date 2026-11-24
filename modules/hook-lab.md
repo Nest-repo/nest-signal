@@ -6,6 +6,10 @@ Ogni settimana migliora `DATA/hook-library.md` con tre passaggi: **fuori** (cosa
 
 È l'**unico** modulo che scrive `hook-library.md`. La sezione 0 (scritta dall'autore) e la sezione 3 non si riscrivono mai: si ricopiano verbatim.
 
+## Step 0a — Allinea il piano con LinkedIn
+
+Esegui `KIT/modules/_sync-piano.md` (salta da solo se il Performance loop l'ha già fatto nelle ultime 20 ore). Serve anche qui: lo Step 4 valida gli hook sui post pubblicati.
+
 ## Step 0 — Chi, a chi, perché
 
 Da `CONFIG` (`audience.*`), `DATA/strategy.md`, `DATA/pain-map.md`: ICP in una riga, 5-8 pain con la frase-specchio, cosa non si dice mai.

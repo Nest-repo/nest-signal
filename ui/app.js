@@ -671,11 +671,14 @@ const shortDate = (d) => d ? new Date(d + (d.length === 10 ? "T12:00:00" : "")).
 const thumb = (p) => p.creativita ? "/creative-img?p=" + encodeURIComponent(p.creativita) : null;
 const toneOf = (s) => ({ "Da pubblicare": "run", Pubblicato: "ok", Scartato: "err", "In revisione": "warn" })[s] || "";
 
+// Post segnato come pubblicato da Nest Signal leggendo LinkedIn (procedura _sync-piano)
+const autoSynced = (p) => p.stato === "Pubblicato" && (/rilevato da Nest Signal/i.test(p.note || "") || p.fonte === "pubblicato fuori dal piano");
+
 function PostCard({ p }) {
   return html`<a class="pcard" href=${"#/piano/" + p.id}>
     ${thumb(p) && html`<img src=${thumb(p)} alt="" />`}
     <div class="pt">${p.titolo || "(senza titolo)"}</div>
-    <div class="row" style="gap:6px;margin-top:8px"><span class="chip sm">${I("calendario")} ${shortDate(p.data)}</span>${p.funnel && html`<span class="chip sm">${p.funnel}</span>`}</div>
+    <div class="row" style="gap:6px;margin-top:8px"><span class="chip sm">${I("calendario")} ${shortDate(p.data)}</span>${p.funnel && html`<span class="chip sm">${p.funnel}</span>`}${autoSynced(p) && html`<span class="chip sm" title="Rilevato su LinkedIn da Nest Signal">${I("browser")} da LinkedIn</span>`}</div>
   </a>`;
 }
 
@@ -735,12 +738,13 @@ function PostDetail({ id, st, back }) {
         ${p.hooks?.length > 0 && html`<div><div class="kicker">Altri hook proposti</div><div class="stack" style="margin-top:8px">${p.hooks.map((h) => html`<button class="hookopt" onClick=${() => set("titolo", typeof h === "string" ? h : h.testo)}>${typeof h === "string" ? h : `${h.voto || ""} ${h.testo}`}</button>`)}</div></div>`}
         <div><label>Testo del post</label><textarea style="font-family:var(--sans);font-size:15px;line-height:1.6;min-height:380px" value=${p.testo || ""} onInput=${(e) => set("testo", e.target.value)}></textarea>
           <p class="hint" style="margin-top:6px">${chars} caratteri${chars > 3000 ? " · oltre il limite di LinkedIn (3.000)" : ""}</p></div>
-        ${p.da_confermare && html`<div class="card soft"><b>Da confermare prima di pubblicare</b><p class="hint" style="margin-top:6px;white-space:pre-wrap">${p.da_confermare}</p></div>`}
+        ${autoSynced(p) && html`<div class="card soft"><b>${I("browser")} Rilevato su LinkedIn</b><p class="hint" style="margin-top:6px">${p.fonte === "pubblicato fuori dal piano" ? "Questo post l'hai pubblicato fuori dal piano: l'ho aggiunto io, così viene misurato." : "Nest Signal l'ha trovato online e ha aggiornato stato, data, link e testo (quello vero pubblicato). La bozza originale resta salvata per il modulo Voce."}</p></div>`}
+        ${p.da_confermare && html`<div class="card soft"><b>${p.stato === "Pubblicato" ? "Da controllare" : "Da confermare prima di pubblicare"}</b><p class="hint" style="margin-top:6px;white-space:pre-wrap">${p.da_confermare}</p></div>`}
         <div class="row">
           <button class="btn primary" onClick=${() => save()}>Salva</button>
           <button class="btn" onClick=${() => { navigator.clipboard.writeText(`${p.testo || ""}`); setSaved("Testo copiato"); }}>Copia testo</button>
           ${["Bozza", "In revisione", "Idea"].includes(p.stato) && html`<button class="btn dark" onClick=${() => save({ ...p, stato: "Da pubblicare" })}>Approva</button>`}
-          ${p.stato === "Da pubblicare" && html`<button class="btn dark" onClick=${() => { const l = prompt("Link del post pubblicato su LinkedIn"); if (l) save({ ...p, stato: "Pubblicato", link_live: l }); }}>Segna come pubblicato</button>`}
+          ${p.stato === "Da pubblicare" && html`<button class="btn ghost" title="Di solito non serve: il Performance loop e l'Hook Lab lo rilevano da soli su LinkedIn" onClick=${() => { const l = prompt("Link del post pubblicato su LinkedIn (di solito non serve: Nest Signal lo rileva da solo)"); if (l) save({ ...p, stato: "Pubblicato", link_live: l }); }}>Segna a mano come pubblicato</button>`}
           ${p.stato !== "Scartato" && html`<button class="btn ghost" onClick=${() => save({ ...p, stato: "Scartato" })}>Scarta</button>`}
         </div>
       </div>
@@ -756,7 +760,7 @@ function PostDetail({ id, st, back }) {
           <label>Data di pubblicazione</label><input type="date" value=${(p.data || "").slice(0, 10)} onInput=${(e) => set("data", e.target.value)} />
           <label>Funzione</label><select value=${p.funnel || ""} onChange=${(e) => set("funnel", e.target.value)}><option value="">—</option>${meta.funnel.map((s) => html`<option>${s}</option>`)}</select>
           <label>CTA</label><input value=${p.cta || ""} onInput=${(e) => set("cta", e.target.value)} />
-          ${p.link_live && html`<label>Link</label><a href=${p.link_live} target="_blank" rel="noopener">${p.link_live}</a>`}
+          ${p.link_live && html`<label>Link</label><a href=${p.link_live} target="_blank" rel="noopener" style="word-break:break-all">${p.link_live}</a>`}
           ${p.fonte && html`<label>Da dove nasce</label><p class="hint">${p.fonte}</p>`}
           <div class="row" style="margin-top:16px"><button class="btn primary smallall" onClick=${() => save()}>Salva</button></div>
         </div>

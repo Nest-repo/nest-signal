@@ -4,6 +4,10 @@ Leggi prima `KIT/modules/_common.md` (se non l'hai già fatto).
 
 Misura ogni post pubblicato, attribuisce i lead al post da cui arrivano e tiene `DATA/performance-ledger.md`: la memoria dei risultati che il content engine usa per replicare ciò che **porta persone** (follower, visite al profilo, commenti, lead). Le impressioni contano, ma vengono dopo. Non scrive post.
 
+## Step 0 — Allinea il piano con LinkedIn
+
+Esegui `KIT/modules/_sync-piano.md`: segna come pubblicati i post usciti, con link, data e testo vero, e aggiunge quelli pubblicati fuori dal piano. Così lo Step 1 li misura subito.
+
 ## Step 1 — Post da misurare
 
 Da `DATA/posts/`: post con `stato: Pubblicato` e `link_live` valorizzato.
