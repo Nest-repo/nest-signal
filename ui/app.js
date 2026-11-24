@@ -477,21 +477,21 @@ const initials = (n) => (n || "?").split(" ").filter(Boolean).slice(0, 2).map((w
 function Shell({ st, hash, children }) {
   const o = st.config.owner;
   return html`<div class="app">
-    <header class="topnav">
+    <aside class="side">
       <div class="brand"><img src="/brand/nest-logo.svg" alt="" />Nest Signal <small>by Nest</small></div>
-      <div class="user">
-        ${st.running.length > 0 && html`<span class="pill run">al lavoro: ${st.running.map((r) => r.target).join(", ")}</span>`}
-        <span class="av">${o.avatar ? html`<img src="/avatar" alt="" />` : initials(o.name)}</span>
-        <div class="who"><b>${o.name || "—"}</b><span>${o.role || o.company || ""}</span></div>
-      </div>
-    </header>
-    <div class="shell">
-      <aside class="side">
-        ${NAV.map(([href, l, ic]) => html`<a class=${"nav " + (hash.startsWith(href) ? "on" : "")} href=${href}>${I(ic)}${l}</a>`)}
-        <div class="grow"></div>
-        <div class="help"><b>Ti serve una mano?</b><p>Nest imposta il sistema con te: call registrate, ICP, CRM.</p>
-          <a class="btn small dark" href=${st.config.nest.booking_url} target="_blank" rel="noopener">Prenota una call</a></div>
-      </aside>
+      ${NAV.map(([href, l, ic]) => html`<a class=${"nav " + (hash.startsWith(href) ? "on" : "")} href=${href}>${I(ic)}${l}</a>`)}
+      <div class="grow"></div>
+      <div class="help"><b>Ti serve una mano?</b><p>Nest imposta il sistema con te: call registrate, ICP, CRM.</p>
+        <a class="btn small" href=${st.config.nest.booking_url} target="_blank" rel="noopener">Prenota una call</a></div>
+    </aside>
+    <div class="content">
+      <header class="topnav">
+        <div class="row">${st.running.length > 0 && html`<span class="pill run">al lavoro: ${st.running.map((r) => jobName(st, r.target)).join(", ")}</span>`}</div>
+        <div class="user">
+          <span class="av">${o.avatar ? html`<img src="/avatar" alt="" />` : initials(o.name)}</span>
+          <div class="who"><b>${o.name || "—"}</b><span>${o.role || o.company || ""}</span></div>
+        </div>
+      </header>
       <main class="main">${children}</main>
     </div>
   </div>`;
@@ -529,7 +529,7 @@ function Today({ st }) {
         <h3>Cosa ha fatto il sistema</h3>
         ${!feed ? html`<p class="hint">Carico…</p>` : !feed.length ? html`<p class="hint">Ancora niente: il primo giro del content engine scrive qui le bozze nuove.</p>` : html`<div>
           ${feed.map((f) => html`<div class="feed-item">
-            <div><b style="font-weight:500">${f.titolo || f.title}</b><div class="row" style="margin-top:6px"><span class="pill">${f.tipo || f.type}</span><span class="when">${f.modulo || f.module} · ${when(f.ts)}</span></div>
+            <div><b style="font-weight:500">${f.titolo || f.title}</b><div class="row" style="margin-top:6px"><span class="pill">${f.tipo || f.type}</span><span class="when">${jobName(st, f.modulo || f.module)} · ${when(f.ts)}</span></div>
               ${f.immagine && html`<a href=${"/creative-img?p=" + encodeURIComponent(f.immagine)} target="_blank"><img onError=${(e) => (e.currentTarget.parentNode.style.display = "none")} src=${"/creative-img?p=" + encodeURIComponent(f.immagine)} style="width:150px;border-radius:10px;margin-top:10px;border:1px solid var(--line)" /></a>`}</div>
             ${f.link && html`<a class="btn small ghost" href=${f.link} target=${f.link.startsWith("http") ? "_blank" : undefined} rel="noopener">Apri</a>`}</div>`)}</div>`}
       </div>
