@@ -30,7 +30,7 @@ function cronHuman(c) {
   return `${DAYS[dw] || dw} ${hours}`;
 }
 const when = (iso) => iso ? new Date(iso).toLocaleString("it-IT", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—";
-const pill = (s) => html`<span class=${"pill " + (s === "ok" ? "ok" : s === "errore" || s === "interrotto" ? "err" : s === "in corso" || s === "in coda" ? "run" : "")}>${s}</span>`;
+const pill = (s) => html`<span class=${"pill " + (s === "ok" ? "ok" : s === "errore" || s === "interrotto" || s === "bloccato" ? "err" : s === "parziale" ? "warn" : s === "in corso" || s === "in coda" ? "run" : "")}>${s}</span>`;
 
 function useJob() {
   // lancia un lavoro (modulo o setup) e ne segue lo stato
@@ -65,7 +65,7 @@ function NestCTA({ cfg, product, title, text, cta }) {
   return html`<div class="nest-cta">
     <div class="kicker">Nest · ${product || "Il tuo OPS Partner"}</div>
     <h3 style="margin-top:8px">${title}</h3><p>${text}</p>
-    <a class="btn accent" href=${cfg?.nest?.booking_url || "https://cal.com/meet-nest/ops-partner"} target="_blank" rel="noopener">${cta || "Prenota 30 minuti con Nest"} →</a>
+    <a class="btn dark" href=${cfg?.nest?.booking_url || "https://cal.com/meet-nest/ops-partner"} target="_blank" rel="noopener">${cta || "Prenota 30 minuti con Nest"} →</a>
   </div>`;
 }
 
@@ -81,7 +81,7 @@ function KBFill({ cfg, draft, page, apply, label }) {
   return html`<div class="card soft">
     <div class="row" style="justify-content:space-between">
       <div><b>${label || "Compila dalla tua knowledge base"}</b><p class="hint" style="margin-top:2px">La tua AI legge i tuoi documenti, il sito, LinkedIn e le call e propone i campi. Poi li correggi tu.</p></div>
-      <button class="btn primary" disabled=${job.busy} onClick=${run}>${job.busy ? "Sto leggendo…" : "✦ Compila"}</button>
+      <button class="btn soft" disabled=${job.busy} onClick=${run}>${job.busy ? "Sto leggendo…" : "✦ Compila"}</button>
     </div>
     ${job.busy && html`<p class="hint" style="margin-top:10px">Può volerci qualche minuto.</p>`}
     ${res && html`<div style="margin-top:12px">
@@ -526,11 +526,11 @@ function Today({ st }) {
     <//>
     <div class="cols">
       <div class="card">
-        <h2>Cosa ha fatto il sistema</h2>
+        <h3>Cosa ha fatto il sistema</h3>
         ${!feed ? html`<p class="hint">Carico…</p>` : !feed.length ? html`<p class="hint">Ancora niente: il primo giro del content engine scrive qui le bozze nuove.</p>` : html`<div>
           ${feed.map((f) => html`<div class="feed-item">
             <div><b style="font-weight:500">${f.titolo || f.title}</b><div class="row" style="margin-top:6px"><span class="pill">${f.tipo || f.type}</span><span class="when">${f.modulo || f.module} · ${when(f.ts)}</span></div>
-              ${f.immagine && html`<a href=${"/creative-img?p=" + encodeURIComponent(f.immagine)} target="_blank"><img src=${"/creative-img?p=" + encodeURIComponent(f.immagine)} style="width:150px;border-radius:10px;margin-top:10px;border:1px solid var(--line)" /></a>`}</div>
+              ${f.immagine && html`<a href=${"/creative-img?p=" + encodeURIComponent(f.immagine)} target="_blank"><img onError=${(e) => (e.currentTarget.parentNode.style.display = "none")} src=${"/creative-img?p=" + encodeURIComponent(f.immagine)} style="width:150px;border-radius:10px;margin-top:10px;border:1px solid var(--line)" /></a>`}</div>
             ${f.link && html`<a class="btn small ghost" href=${f.link} target=${f.link.startsWith("http") ? "_blank" : undefined} rel="noopener">Apri</a>`}</div>`)}</div>`}
       </div>
       <div class="stack" style="margin:0">
@@ -554,7 +554,7 @@ function Modules({ st, reload }) {
     ${logFor && html`<div class="card" style="margin-bottom:16px"><div class="row" style="justify-content:space-between"><h3>${I("log")} ${logFor.target} ${pill(logFor.status)}</h3><button class="btn small ghost" onClick=${() => setLogFor(null)}>Chiudi</button></div><pre class="log" style="margin-top:12px">${log || "(vuoto)"}</pre></div>`}
     <div class="rows">${st.modules.map((m) => html`<div class="item">
       <div>
-        <div class="row"><span class="t">${m.name}</span>${!m.enabled && html`<span class="pill">in pausa</span>`}${m.browser && html`<span class="pill">${I("browser")} LinkedIn</span>`}</div>
+        <div class="row"><span class="t">${m.name}</span>${!m.enabled && html`<span class="pill">in pausa</span>`}${m.browser && html`<span class="chip sm">${I("browser")} usa LinkedIn</span>`}</div>
         <div class="d">${m.desc}</div>
         <div class="chips">
           <span class="chip">${I("orologio")} ${cronHuman(m.cron)}</span>
@@ -656,13 +656,16 @@ function Overview() {
   const [days, setDays] = useState(90); const [a, setA] = useState(null);
   useEffect(() => { setA(null); api(`/api/analytics?days=${days}`).then(setA); }, [days]);
   const K = a?.kpi;
-  const tiles = K ? [["Post pubblicati", K.pubblicati, `${K.misurati} misurati`], ["Impressioni", K.impressioni], ["Follower acquisiti", K.follower], ["Visite al profilo", K.visite], ["Commenti", K.commenti], ["Lead", K.lead], ["Conversione media", K.conv_media, "ogni 1.000 impressioni"]] : [];
+  const tiles = K ? [["Lead", K.lead], ["Follower acquisiti", K.follower], ["Visite al profilo", K.visite], ["Commenti", K.commenti], ["Impressioni", K.impressioni], ["Post pubblicati", K.pubblicati, `${K.misurati} misurati`]] : [];
   const wk = a?.settimane || [];
   return html`<div class="stack" style="margin:0">
-    <div class="row" style="justify-content:space-between"><div class="tabs">${[[30, "30 giorni"], [90, "90 giorni"], [0, "Tutto"]].map(([d, l]) => html`<button class=${"tab " + (days === d ? "on" : "")} onClick=${() => setDays(d)}>${l}</button>`)}</div>
+    <div class="row" style="justify-content:space-between"><div class="seg">${[[30, "30 giorni"], [90, "90 giorni"], [0, "Tutto"]].map(([d, l]) => html`<button class=${days === d ? "on" : ""} onClick=${() => setDays(d)}>${l}</button>`)}</div>
       <span class="hint">Aggiornati dal Performance loop (lun e gio)</span></div>
     ${!a ? html`<p class="hint">Carico…</p>` : !K.misurati ? html`<div class="card"><h3>Ancora nessun post misurato</h3><p class="hint" style="margin-top:6px">I numeri arrivano dal Performance loop, che legge le statistiche dei tuoi post su LinkedIn col browser di Nest Signal. Pubblica, collega il browser (Impostazioni → Connessioni) e al primo giro vedi qui impressioni, follower, visite al profilo, commenti e lead per post.</p></div>` : html`
-      <div class="kpis">${tiles.map(([l, v, sub]) => html`<div class="kpi"><span>${l}</span><b>${fmt(v)}</b>${sub && html`<small>${sub}</small>`}</div>`)}</div>
+      <div class="kpis">
+        <div class="kpi main"><span>Conversione media</span><b>${fmt(K.conv_media)}</b><small>follower, visite, commenti e lead ogni 1.000 impressioni: il numero che conta</small></div>
+        ${tiles.map(([l, v, sub]) => html`<div class="kpi"><span>${l}</span><b>${fmt(v)}</b>${sub && html`<small>${sub}</small>`}</div>`)}
+      </div>
       <div class="card"><h3>Impressioni per settimana</h3><${BarChart} data=${wk.map((w) => ({ label: ddmm(w.settimana), value: w.impressioni, sub: `settimana del ${ddmm(w.settimana)} · ${w.post} post` }))} /></div>
       <div class="grid3">${[["Follower acquisiti", "follower"], ["Visite al profilo", "visite"], ["Lead", "lead"]].map(([l, f]) => html`<div class="card"><h3>${l}</h3><${BarChart} width=${300} height=${190} data=${wk.map((w) => ({ label: ddmm(w.settimana), value: w[f], sub: `settimana del ${ddmm(w.settimana)}` }))} /></div>`)}</div>
       <div class="grid2">
@@ -673,8 +676,8 @@ function Overview() {
         <div class="card"><h3>Top per conversione</h3>${a.top_conv.map((p) => html`<a class="toprow" href=${"#/piano/" + p.id}><span class="tt">${p.titolo}</span><span class="chip sm">${fmt(p.conv)}</span><span class="hint">${fmt(p.follower)} follower · ${fmt(p.lead)} lead</span></a>`)}</div>
         <div class="card"><h3>Top per impressioni</h3>${a.top_reach.map((p) => html`<a class="toprow" href=${"#/piano/" + p.id}><span class="tt">${p.titolo}</span><span class="chip sm">${fmt(p.impressioni)}</span><span class="hint">${ddmm(p.data)}</span></a>`)}</div>
       </div>
-      <div class="card"><h3>Lead arrivati da LinkedIn</h3>${a.leads.length ? html`<table class="tbl"><thead><tr><th>Quando</th><th>Chi</th><th>Da quale post</th><th>Certezza</th></tr></thead><tbody>${a.leads.map((l) => html`<tr><td>${ddmm((l.ts || "").slice(0, 10))}</td><td>${l.profilo ? html`<a href=${l.profilo} target="_blank" rel="noopener">${l.nome}</a>` : l.nome}</td><td>${l.post_titolo || "—"}</td><td><span class=${"pill " + (l.certezza === "certo" ? "ok" : l.certezza === "probabile" ? "warn" : "")}>${l.certezza}</span></td></tr>`)}</tbody></table>` : html`<p class="hint">Nessun lead nel periodo.</p>`}</div>
-      <details class="card"><summary><b>Tutti i post (tabella)</b></summary><table class="tbl" style="margin-top:12px"><thead><tr><th>Data</th><th>Post</th><th>Impr.</th><th>Follower</th><th>Visite</th><th>Comm.</th><th>Lead</th><th>Conv.</th></tr></thead><tbody>${[...a.posts].reverse().map((p) => html`<tr><td>${ddmm(p.data)}</td><td><a href=${"#/piano/" + p.id}>${(p.titolo || "").slice(0, 60)}</a></td><td>${fmt(p.impressioni)}</td><td>${fmt(p.follower)}</td><td>${fmt(p.visite)}</td><td>${fmt(p.commenti)}</td><td>${fmt(p.lead)}</td><td>${fmt(p.conv)}</td></tr>`)}</tbody></table></details>`}
+      <div class="card"><h3>Lead arrivati da LinkedIn</h3>${a.leads.length ? html`<div class="tblwrap"><table class="tbl"><thead><tr><th>Quando</th><th>Chi</th><th>Da quale post</th><th>Certezza</th></tr></thead><tbody>${a.leads.map((l) => html`<tr><td>${ddmm((l.ts || "").slice(0, 10))}</td><td>${l.profilo ? html`<a href=${l.profilo} target="_blank" rel="noopener">${l.nome}</a>` : l.nome}</td><td>${l.post_titolo || "—"}</td><td><span class=${"pill " + (l.certezza === "certo" ? "ok" : l.certezza === "probabile" ? "warn" : "")}>${l.certezza}</span></td></tr>`)}</tbody></table></div>` : html`<p class="hint">Nessun lead nel periodo.</p>`}</div>
+      <details class="card"><summary><b>Tutti i post (tabella)</b></summary><div class="tblwrap"><table class="tbl"><thead><tr><th>Data</th><th>Post</th><th>Impr.</th><th>Follower</th><th>Visite</th><th>Comm.</th><th>Lead</th><th>Conv.</th></tr></thead><tbody>${[...a.posts].reverse().map((p) => html`<tr><td>${ddmm(p.data)}</td><td><a href=${"#/piano/" + p.id}>${(p.titolo || "").slice(0, 60)}</a></td><td>${fmt(p.impressioni)}</td><td>${fmt(p.follower)}</td><td>${fmt(p.visite)}</td><td>${fmt(p.commenti)}</td><td>${fmt(p.lead)}</td><td>${fmt(p.conv)}</td></tr>`)}</tbody></table></div></details>`}
   </div>`;
 }
 
@@ -723,7 +726,7 @@ function Competitors({ st, reload }) {
         ${(d.insights || d.top.length > 0) && html`<div class="card">
           <div class="tabs" style="margin-bottom:14px">${[["insight", "Dove posizionarti"], ["top", "I loro post migliori"]].map(([k, l]) => html`<button class=${"tab " + (tab === k ? "on" : "")} onClick=${() => setTab(k)}>${l}</button>`)}</div>
           ${tab === "insight" ? html`<div class="md" dangerouslySetInnerHTML=${{ __html: marked.parse((d.insights || "Arriva col primo giro del radar.").replace(/<!--[\s\S]*?-->/g, "")) }}></div>`
-            : html`<table class="tbl"><thead><tr><th>Chi</th><th>Hook</th><th>Formato</th><th>Reaz.</th><th>Comm.</th><th>Tema</th></tr></thead><tbody>${d.top.map((p) => html`<tr><td>${p.competitor}</td><td><a href=${p.link} target="_blank" rel="noopener">${(p.hook || "").slice(0, 90)}</a></td><td>${p.formato}</td><td>${fmt(p.reazioni)}</td><td>${fmt(p.commenti)}</td><td>${p.tema || ""}${p.pain && p.pain !== "✗" ? html`<br/><small class="hint">${p.pain}</small>` : ""}</td></tr>`)}</tbody></table>`}
+            : html`<div class="tblwrap"><table class="tbl"><thead><tr><th>Chi</th><th>Hook</th><th>Formato</th><th>Reaz.</th><th>Comm.</th><th>Tema</th></tr></thead><tbody>${d.top.map((p) => html`<tr><td>${p.competitor}</td><td><a href=${p.link} target="_blank" rel="noopener">${(p.hook || "").slice(0, 90)}</a></td><td>${p.formato}</td><td>${fmt(p.reazioni)}</td><td>${fmt(p.commenti)}</td><td>${p.tema || ""}${p.pain && p.pain !== "✗" ? html`<br/><small class="hint">${p.pain}</small>` : ""}</td></tr>`)}</tbody></table></div>`}
         </div>`}
       </div>
       <div class="stack" style="margin:0">
@@ -747,15 +750,19 @@ function Competitors({ st, reload }) {
   </div>`;
 }
 
-function Activity() {
+const jobName = (st, id) => st?.modules?.find((m) => m.id === id)?.name || st?.setup_jobs?.[id]?.name || id;
+const TRIGGER = { orario: "all'orario", manuale: "lanciato da te", onboarding: "dall'onboarding", terminale: "dal terminale" };
+
+function Activity({ st }) {
   const [list, setList] = useState([]); const [open, setOpen] = useState(null); const [log, setLog] = useState("");
   useEffect(() => { api("/api/runs").then(setList); }, []);
   return html`<div>
     <${Hero} kicker="Attività" title="Ogni giro, con il suo log" />
-    ${open && html`<div class="card" style="margin-bottom:16px"><div class="row" style="justify-content:space-between"><h3>${I("log")} ${open.target} ${pill(open.status)}</h3><button class="btn small ghost" onClick=${() => setOpen(null)}>Chiudi</button></div><pre class="log" style="margin-top:12px">${log || "(vuoto)"}</pre></div>`}
+    ${open && html`<div class="card" style="margin-bottom:16px"><div class="row" style="justify-content:space-between"><h3>${I("log")} ${jobName(st, open.target)} ${pill(open.status)}</h3><button class="btn small ghost" onClick=${() => setOpen(null)}>Chiudi</button></div><pre class="log" style="margin-top:12px">${log || "(vuoto)"}</pre></div>`}
     <div class="rows">${list.length ? list.map((r) => html`<div class="item">
-      <div><div class="row"><span class="t" style="font-size:16px">${r.target}</span>${pill(r.status)}</div>
-        <div class="chips"><span class="chip">${I("calendario")} ${when(r.started_at || r.queued_at)}</span><span class="chip">${r.kind === "setup" ? "onboarding" : "modulo"} · ${r.trigger}</span></div></div>
+      <div><div class="row"><span class="t">${jobName(st, r.target)}</span>${pill(r.status)}</div>
+        ${r.error && r.status === "bloccato" && html`<div class="d">${r.error}</div>`}
+        <div class="chips"><span class="chip sm">${I("calendario")} ${when(r.started_at || r.queued_at)}</span><span class="chip sm">${r.kind === "setup" ? "Preparazione" : "Modulo"} · ${TRIGGER[r.trigger] || r.trigger}</span></div></div>
       <div class="act"><button class="btn small ghost" onClick=${async () => { setOpen(r); setLog((await api(`/api/runs/${r.id}/log`)).log); scrollTo(0, 0); }}>${I("log")} Log</button></div>
     </div>`) : html`<div class="card"><p class="hint">Nessun giro ancora.</p></div>`}</div>
   </div>`;
@@ -769,19 +776,17 @@ function Settings({ st, reload }) {
     <${Hero} kicker="Impostazioni" title="Motore e collegamenti" />
     <div class="cols">
       <div class="card">
-        <h2>Collegamenti</h2>
-        <div class="grid2">
+        <h3>Collegamenti</h3>
+        <div>
           <div><label>AI che fa il lavoro</label><select value=${c.ai.adapter} onChange=${(e) => setC({ ...c, ai: { ...c.ai, adapter: e.target.value } })}>${Object.entries(st.adapters).map(([id, a]) => html`<option value=${id}>${a.label}</option>`)}</select></div>
-          <div><label>Comando personalizzato</label><input value=${c.ai.custom_command} placeholder="usa {prompt}" onInput=${(e) => setC({ ...c, ai: { ...c.ai, custom_command: e.target.value } })} /></div>
-          <div><label>Canale Slack per i report</label><input value=${c.delivery.slack_channel} onInput=${(e) => setC({ ...c, delivery: { ...c.delivery, slack_channel: e.target.value } })} /></div>
+          ${c.ai.adapter === "custom" && html`<div><label>Comando personalizzato</label><input value=${c.ai.custom_command} placeholder="usa {prompt}" onInput=${(e) => setC({ ...c, ai: { ...c.ai, custom_command: e.target.value } })} /></div>`}
+          <div><label>Canale Slack per i report (facoltativo)</label><input placeholder="es. #linkedin" value=${c.delivery.slack_channel} onInput=${(e) => setC({ ...c, delivery: { ...c.delivery, slack_channel: e.target.value } })} /></div>
         </div>
         <div class="row" style="margin-top:20px"><button class="btn primary" onClick=${save}>Salva</button><span class="hint">${ok}</span></div>
       </div>
       <div class="stack" style="margin:0">
         <div class="card"><h3>Rifai un passo</h3><p class="hint">Riapre l'onboarding dal punto scelto, senza perdere il resto.</p>
-          <div class="stack" style="margin-top:14px"><button class="btn ghost" style="width:100%" onClick=${() => reopen(6)}>Template delle creatività</button>
-            <button class="btn ghost" style="width:100%" onClick=${() => reopen(4)}>ICP e target</button>
-            <button class="btn ghost" style="width:100%" onClick=${() => reopen(1)}>Tutto l'onboarding</button></div></div>
+          <div class="stack" style="margin-top:14px">${[[1, "La tua AI"], [3, "Connessioni: browser, call, knowledge base"], [4, "ICP e target"], [5, "Come comunichi"], [6, "Template delle creatività"]].map(([n, l]) => html`<button class="btn ghost" style="width:100%;justify-content:flex-start" onClick=${() => reopen(n)}>${l}</button>`)}</div></div>
         <div class="card"><h3>Dati</h3><p class="hint mono" style="margin-top:8px;word-break:break-all">${st.home}</p></div>
       </div>
     </div>
@@ -797,9 +802,11 @@ const toneOf = (s) => ({ "Da pubblicare": "run", Pubblicato: "ok", Scartato: "er
 // Post segnato come pubblicato da Nest Signal leggendo LinkedIn (procedura _sync-piano)
 const autoSynced = (p) => p.stato === "Pubblicato" && (/rilevato da Nest Signal/i.test(p.note || "") || p.fonte === "pubblicato fuori dal piano");
 
+const METRIC_LABEL = { impressioni: "Impressioni", interazioni: "Interazioni", commenti: "Commenti", repost: "Repost", follower_acquisiti: "Follower acquisiti", visite_profilo: "Visite al profilo", lead: "Lead", metriche_al: "Aggiornati il" };
+
 function PostCard({ p }) {
   return html`<a class="pcard" href=${"#/piano/" + p.id}>
-    ${thumb(p) && html`<img src=${thumb(p)} alt="" />`}
+    ${thumb(p) && html`<img src=${thumb(p)} alt="" onError=${(e) => (e.currentTarget.style.display = "none")} />`}
     <div class="pt">${p.titolo || "(senza titolo)"}</div>
     <div class="row" style="gap:6px;margin-top:8px"><span class="chip sm">${I("calendario")} ${shortDate(p.data)}</span>${p.funnel && html`<span class="chip sm">${p.funnel}</span>`}${autoSynced(p) && html`<span class="chip sm" title="Rilevato su LinkedIn da Nest Signal">${I("browser")} da LinkedIn</span>`}</div>
   </a>`;
@@ -858,16 +865,16 @@ function AskAI({ st, p, reloadPost }) {
       setMsg(r.opened ? `Ho aperto ${r.label} con la tua richiesta. Quando ha finito, ricarica il post.` : `Apri il Terminale e incolla: ${r.cmd}`);
     } catch (e) { setErr(e.message); }
   };
-  return html`<div class="nest-cta" style="padding:22px">
-    <div class="kicker">${I("chat")} Cambialo con ${label}</div>
-    <h3 style="margin-top:8px">Cosa vuoi cambiare?</h3>
-    <textarea style="min-height:72px;margin-top:10px;font-family:var(--sans);font-size:15px;background:#fff;color:var(--ink)" value=${req} onInput=${(e) => setReq(e.target.value)}></textarea>
+  return html`<div class="card selected">
+    <div class="kicker" style="color:var(--moss);display:flex;gap:6px;align-items:center">${I("chat")} Cambialo con ${label}</div>
+    <h3 style="margin-top:6px">Cosa vuoi cambiare?</h3>
+    <textarea style="min-height:72px;margin-top:10px;font-family:var(--sans);font-size:15px" value=${req} onInput=${(e) => setReq(e.target.value)}></textarea>
     <div class="row" style="margin-top:12px">
       <button class="btn accent" disabled=${!req.trim()} onClick=${open}>Apri in ${label} →</button>
-      ${msg && html`<button class="btn small ghost" style="color:#fff;border-color:rgba(255,255,255,.3)" onClick=${reloadPost}>Ricarica il post</button>`}
+      ${msg && html`<button class="btn small ghost" onClick=${reloadPost}>Ricarica il post</button>`}
     </div>
-    ${msg && html`<p style="margin-top:10px">${msg}</p>`}
-    ${err && html`<p style="margin-top:10px">${err}</p>`}
+    ${msg && html`<p class="hint" style="margin-top:10px">${msg}</p>`}
+    ${err && html`<p class="hint" style="margin-top:10px;color:var(--err)">${err}</p>`}
   </div>`;
 }
 
@@ -889,9 +896,9 @@ function PostDetail({ id, st, back }) {
         ${autoSynced(p) && html`<div class="card soft"><b>${I("browser")} Rilevato su LinkedIn</b><p class="hint" style="margin-top:6px">${p.fonte === "pubblicato fuori dal piano" ? "Questo post l'hai pubblicato fuori dal piano: l'ho aggiunto io, così viene misurato." : "Nest Signal l'ha trovato online e ha aggiornato stato, data, link e testo (quello vero pubblicato). La bozza originale resta salvata per il modulo Voce."}</p></div>`}
         ${p.da_confermare && html`<div class="card soft"><b>${p.stato === "Pubblicato" ? "Da controllare" : "Da confermare prima di pubblicare"}</b><p class="hint" style="margin-top:6px;white-space:pre-wrap">${p.da_confermare}</p></div>`}
         <div class="row">
-          <button class="btn primary" onClick=${() => save()}>Salva</button>
-          <button class="btn" onClick=${() => { navigator.clipboard.writeText(`${p.testo || ""}`); setSaved("Testo copiato"); }}>Copia testo</button>
-          ${["Bozza", "In revisione", "Idea"].includes(p.stato) && html`<button class="btn dark" onClick=${() => save({ ...p, stato: "Da pubblicare" })}>Approva</button>`}
+          <button class=${["Bozza", "In revisione", "Idea"].includes(p.stato) ? "btn" : "btn primary"} onClick=${() => save()}>Salva</button>
+          <button class="btn ghost" onClick=${() => { navigator.clipboard.writeText(`${p.testo || ""}`); setSaved("Testo copiato"); }}>Copia testo</button>
+          ${["Bozza", "In revisione", "Idea"].includes(p.stato) && html`<button class="btn primary" onClick=${() => save({ ...p, stato: "Da pubblicare" })}>Approva</button>`}
           ${p.stato === "Da pubblicare" && html`<button class="btn ghost" title="Di solito non serve: il Performance loop e l'Hook Lab lo rilevano da soli su LinkedIn" onClick=${() => { const l = prompt("Link del post pubblicato su LinkedIn (di solito non serve: Nest Signal lo rileva da solo)"); if (l) save({ ...p, stato: "Pubblicato", link_live: l }); }}>Segna a mano come pubblicato</button>`}
           ${p.stato !== "Scartato" && html`<button class="btn ghost" onClick=${() => save({ ...p, stato: "Scartato" })}>Scarta</button>`}
         </div>
@@ -899,7 +906,7 @@ function PostDetail({ id, st, back }) {
       <div class="stack" style="margin:0">
         <div class="card">
           <h3>Immagine</h3>
-          ${thumb(p) ? html`<a href=${thumb(p)} target="_blank"><img src=${thumb(p) + "&t=" + Date.now()} style="width:100%;border-radius:12px;border:1px solid var(--line);margin-top:12px" /></a>` : html`<p class="hint">Arriva col prossimo giro del modulo Creatività (post con data nei prossimi 14 giorni).</p>`}
+          ${thumb(p) ? html`<a href=${thumb(p)} target="_blank"><img onError=${(e) => (e.currentTarget.style.display = "none")} src=${thumb(p) + "&t=" + Date.now()} style="width:100%;border-radius:12px;border:1px solid var(--line);margin-top:12px" /></a>` : html`<p class="hint">Arriva col prossimo giro del modulo Creatività (post con data nei prossimi 14 giorni).</p>`}
           <div class="row" style="margin-top:12px"><button class="btn small" onClick=${async () => { await save({ ...p, creativita: "" }); await post("/api/run", { kind: "module", target: "creative" }); setSaved("Immagine in rigenerazione"); }}>${thumb(p) ? "Rigenera" : "Generala ora"}</button></div>
         </div>
         <div class="card">
@@ -910,9 +917,9 @@ function PostDetail({ id, st, back }) {
           <label>CTA</label><input value=${p.cta || ""} onInput=${(e) => set("cta", e.target.value)} />
           ${p.link_live && html`<label>Link</label><a class="btn small ghost" href=${p.link_live} target="_blank" rel="noopener">Apri su LinkedIn ↗</a>`}
           ${p.fonte && html`<label>Da dove nasce</label><p class="hint">${p.fonte}</p>`}
-          <div class="row" style="margin-top:16px"><button class="btn primary smallall" onClick=${() => save()}>Salva</button></div>
+          <div class="row" style="margin-top:16px"><button class="btn" onClick=${() => save()}>Salva i dettagli</button></div>
         </div>
-        ${p.metriche && Object.keys(p.metriche).length > 0 && html`<div class="card"><h3>Risultati</h3>${Object.entries(p.metriche).map(([k, v]) => html`<div class="check"><span style="flex:1;text-transform:capitalize">${k.replace(/_/g, " ")}</span><b>${v}</b></div>`)}</div>`}
+        ${p.metriche && Object.keys(p.metriche).length > 0 && html`<div class="card"><h3>Risultati</h3>${Object.entries(p.metriche).map(([k, v]) => html`<div class="check"><span style="flex:1">${METRIC_LABEL[k] || k.replace(/_/g, " ")}</span><b style="font-weight:500">${k === "metriche_al" ? ddmm(String(v).slice(0, 10)) : fmt(v)}</b></div>`)}</div>`}
         <${AskAI} st=${st} p=${p} reloadPost=${() => api(`/api/posts/${id}`).then(setP)} />
       </div>
     </div>
