@@ -1,12 +1,12 @@
 # Modulo — Comment radar (opzionale)
 
-Leggi prima `KIT/modules/_common.md` (se non l'hai già fatto). Si attiva e si mette in pausa dal pannello (Moduli). Lista persone: `comment_radar.audience_list_db` (DB Notion con gli URL LinkedIn); se manca, usa le persone che hanno commentato i post dell'autore negli ultimi 30 giorni e sono in target secondo `audience`.
+Leggi prima `KIT/modules/_common.md` (se non l'hai già fatto). Si attiva e si mette in pausa dal pannello (Moduli). Lista persone: `DATA/people.md`; se è vuoto, usa le persone in target (secondo `audience`) che hanno commentato i post dell'autore negli ultimi 30 giorni.
 
 Ti segnala i **post freschi** (meno di 6 ore) delle persone che vuoi raggiungere, con un angolo per commentare. Tu commenti a mano: il radar non scrive niente su LinkedIn.
 
 ## Step 1 — Chi guardare
 
-Dal DB `comment_radar.audience_list_db` le righe attive con un URL LinkedIn. Ruota: ogni run guarda quelle non controllate da più tempo (`state/comment-radar.json → last_checked`), max 25 profili.
+Da `DATA/people.md` i profili con un URL LinkedIn. Ruota: ogni run guarda quelle non controllate da più tempo (`state/comment-radar.json → last_checked`), max 25 profili.
 
 ## Step 2 — Post freschi
 

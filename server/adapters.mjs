@@ -55,7 +55,7 @@ export async function detect() {
   return out;
 }
 
-// Elenco dei server MCP configurati nell'AI scelta (Notion, Slack, browser...). Testo grezzo: lo interpreta il pannello.
+// Elenco dei server MCP configurati nell'AI scelta (browser, Slack, meeting...). Testo grezzo: lo interpreta il pannello.
 export async function mcpServers(adapterId) {
   const a = ADAPTERS[adapterId];
   if (!a?.mcpList) return { ok: false, text: "Controllo automatico non disponibile per questo adapter." };

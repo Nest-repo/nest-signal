@@ -1,5 +1,4 @@
-// Piano Editoriale locale: un file JSON per post in DATA/posts. È la fonte di verità del pannello;
-// Notion, se collegato, è solo una copia (sync facoltativo dei moduli).
+// Piano Editoriale locale: un file JSON per post in DATA/posts (cartella workspace/ del progetto).
 import fs from "node:fs";
 import path from "node:path";
 import { DATA } from "./store.mjs";
@@ -9,7 +8,7 @@ export const STATI = ["Idea", "Bozza", "In revisione", "Da pubblicare", "Pubblic
 export const FUNNEL = ["Reach", "Connection", "Authority", "Conversion", "Referral"];
 
 const FIELDS = ["titolo", "testo", "hooks", "stato", "data", "funnel", "formato", "cta", "pattern_hook", "creativita", "layout",
-  "link_live", "metriche", "fonte", "da_confermare", "note", "autore", "testo_bozza", "notion_url"];
+  "link_live", "metriche", "fonte", "da_confermare", "note", "autore", "testo_bozza"];
 
 function ensure() { fs.mkdirSync(POSTS, { recursive: true }); }
 const file = (id) => {

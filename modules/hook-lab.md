@@ -14,7 +14,7 @@ Da `CONFIG` (`audience.*`), `DATA/strategy.md`, `DATA/pain-map.md`: ICP in una r
 
 Salta i post già in `state/hook-lab.json → seen_posts`.
 1. **Creator di riferimento** (`hook_lab.reference_creators`): `https://www.linkedin.com/in/<handle>/recent-activity/all/`.
-2. **Cosa legge il target** (`hook_lab.audience_list_db`, se c'è): per 10 profili, `/recent-activity/reactions/` e `/recent-activity/comments/`. Peso doppio: è ciò che il tuo pubblico nota davvero.
+2. **Cosa legge il target** (profili in `DATA/people.md`, se ci sono): per 10 profili, `/recent-activity/reactions/` e `/recent-activity/comments/`. Peso doppio: è ciò che il tuo pubblico nota davvero.
 3. **Per tema** (`hook_lab.search_topics`): `https://www.linkedin.com/search/results/content/?keywords=<tema>&datePosted="past-week"`.
 
 Per ogni post: autore, link, data, reazioni, commenti, e l'**hook** (il testo prima di "…altro"/"…more"). Tieni quelli che hanno funzionato: commenti ≥ 30, oppure reazioni ≥ 10× la mediana dell'autore, oppure commentati da ≥ 2 persone del target. Max 60 pagine.

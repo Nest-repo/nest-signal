@@ -6,7 +6,7 @@ Fonti, in ordine:
 1. `CONFIG.audience` (quello che ha già scritto: vince su tutto).
 2. Il sito `CONFIG.owner.website` (home, servizi, casi, chi siamo).
 3. Il profilo LinkedIn `CONFIG.owner.linkedin_url` (headline, about, ultimi 10 post) col browser di Nest Signal, in sola lettura.
-4. Se `CONFIG.notion.crm_db` c'è: i clienti vinti e i lead migliori (settore, dimensione, ruolo di chi ha firmato).
+4. Se c'è `DATA/clienti.md` (il cliente può incollarci i suoi clienti migliori): settore, dimensione, ruolo di chi ha firmato.
 5. Le ultime 5 call dalla fonte in `CONFIG.meetings` (se raggiungibile): le frasi con cui i clienti descrivono il problema.
 
 Scrivi `DATA/drafts/draft-icp.json`:

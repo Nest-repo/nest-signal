@@ -1,4 +1,4 @@
-// Apre il browser di Nest Signal (profilo dedicato in ~/.nest-signal/browser) sulla pagina di login di LinkedIn.
+// Apre il browser di Nest Signal (profilo dedicato in workspace/browser) sulla pagina di login di LinkedIn.
 // Il cliente fa login una volta; i moduli che leggono LinkedIn useranno lo stesso profilo tramite Playwright MCP.
 // La password la scrive solo il cliente: Nest Signal non la vede e non la salva.
 import { BROWSER_PROFILE } from "../server/store.mjs";

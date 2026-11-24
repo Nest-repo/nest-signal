@@ -1,11 +1,11 @@
-// Dati locali di Nest Signal: tutto in ~/.nest-signal (o NEST_SIGNAL_HOME). Niente esce dal computer.
+// Dati locali di Nest Signal: tutto in workspace/ del progetto (o NEST_SIGNAL_HOME). Niente esce dal computer.
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const PKG = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-export const HOME = process.env.NEST_SIGNAL_HOME || path.join(os.homedir(), ".nest-signal");
+// I dati stanno dentro la cartella di Nest Signal (workspace/): l'AI del cliente, aperta qui, vede e modifica tutto.
+export const HOME = process.env.NEST_SIGNAL_HOME || path.join(PKG, "workspace");
 export const DATA = path.join(HOME, "data");
 export const RUNS = path.join(HOME, "runs");
 export const BROWSER_PROFILE = path.join(HOME, "browser");
@@ -17,11 +17,11 @@ export const DEFAULT_CONFIG = {
   audience: { icp: "", sector: "", size: "", decision_maker: "", not_icp: "", offer: "", goal: "call prenotate", pains: [] },
   voice: { references: [], length: "500-1000", cta: ["Domanda nei commenti", "Porta aperta (scrivimi)"], never: "" },
   ai: { adapter: "claude", custom_command: "", unattended: true },
-  notion: { editorial_db: "", crm_db: "", crm_post_relation: "", report_page: "" },
   delivery: { slack_channel: "" },
   meetings: { source: "", details: "" },
-  hook_lab: { reference_creators: [], search_topics: [], audience_list_db: "" },
-  comment_radar: { audience_list_db: "", max_per_run: 5 },
+  knowledge: { source: "", details: "" },
+  hook_lab: { reference_creators: [], search_topics: [] },
+  comment_radar: { max_per_run: 5 },
   brand: { bg: "#eee8de", ink: "#171717", accent: "#ff4700" },
   creative: { figma_url: "", notes: "", feedback: [], approved: false },
   content: { days: ["lun", "mar", "mer", "gio"], max_proposals_per_run: 2, experiment_ratio: 0.25, inputs: { slack_ideas_channel: "" } },
@@ -32,7 +32,7 @@ export const DEFAULT_CONFIG = {
 };
 
 function ensureDirs() {
-  for (const d of [HOME, DATA, RUNS, path.join(DATA, "state"), path.join(DATA, "drafts"), path.join(DATA, "creative", "references")]) fs.mkdirSync(d, { recursive: true });
+  for (const d of [HOME, DATA, RUNS, path.join(DATA, "state"), path.join(DATA, "drafts"), path.join(DATA, "creative", "references"), path.join(DATA, "meetings"), path.join(DATA, "posts"), path.join(DATA, "knowledge")]) fs.mkdirSync(d, { recursive: true });
   // file di conoscenza: si copiano dai template solo se mancano
   const tdir = path.join(PKG, "templates");
   for (const f of fs.readdirSync(tdir)) {

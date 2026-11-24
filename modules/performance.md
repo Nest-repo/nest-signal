@@ -35,15 +35,15 @@ Per ogni post: `https://www.linkedin.com/analytics/post-summary/urn:li:activity:
 
 Nel post, oggetto `metriche`: `impressioni`, `interazioni`, `commenti`, `repost`, `follower_acquisiti`, `visite_profilo`, `metriche_al` = oggi (e `lead` = n. lead attribuiti). Se un valore letto è minore di quello già salvato, tieni il vecchio (errore di lettura). Appendi una riga JSON per post in `DATA/state/performance-snapshots.jsonl`: `{"date","page","activity","impr","reach","followers","profile_visits","comments","reposts","saves","promoted","age_days","company_size","seniority"}`.
 
-## Step 4 — Attribuzione dei lead (solo se c'è `notion.crm_db`)
+## Step 4 — Attribuzione dei lead
 
-Candidati: schede CRM create dall'ultimo run con un URL LinkedIn e senza `notion.crm_post_relation` valorizzata. Prove, dalla più forte:
-1. nella scheda o nel thread LinkedIn con l'autore (sola lettura) cita un post o il suo tema → **certo**
+Candidati: chi negli ultimi giorni (dall'ultimo run) ha **scritto all'autore** o **si è collegato** su LinkedIn (messaggi e "La mia rete", sola lettura) ed è in target secondo `audience` in CONFIG. Salta chi è già in `DATA/leads.jsonl`. Prove, dalla più forte:
+1. nel messaggio cita un post o il suo tema → **certo**
 2. ha commentato un post dell'autore nei 21 giorni prima → **certo**
 3. ha messo una reazione nei 14 giorni prima → **probabile**
 4. nessuna prova → **incerto**
 
-Certo/probabile: imposta la relation verso il post e una riga nel body della scheda (`Attribuito al post «hook» — certo/probabile: prova`). Incerto: non scrivere nulla, mettilo nel report con i 2 post candidati, così l'autore decide.
+Per ognuno aggiungi una riga in `DATA/leads.jsonl` (`{"ts","nome","profilo","post_id","certezza","prova"}`; `post_id` vuoto se incerto). Per certo/probabile aumenta di 1 `metriche.lead` del post. Gli incerti vanno nel diario come domanda (`tipo: "suggerimento"`, «Da quale post arriva <nome>?»), così l'autore lo dice alla sua AI.
 
 ## Step 5 — Riscrivi `DATA/performance-ledger.md`
 

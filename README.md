@@ -2,18 +2,18 @@
 
 **LinkedIn che porta call, senza scrivere da zero.** Nest Signal scrive le bozze nella tua voce partendo dai problemi veri dei tuoi clienti, crea l'immagine di ogni post, misura cosa porta follower, visite e lead, e ogni settimana migliora da solo. Tu approvi e pubblichi.
 
-Costruito da [Nest](https://usanest.it), growth partner per founder che vogliono un sistema e non più ore.
+Costruito da [Nest](https://usanest.it), il partner operativo che progetta e ottimizza i processi delle aziende in crescita: operation prima, tecnologia dopo.
 
 ## Come funziona
 
 Un pannello locale (stile [Paperclip](https://github.com/paperclipai/paperclip)) con:
 - **Piano editoriale nel pannello**: bacheca per stato, calendario, scheda del post (testo, hook alternativi, immagine, approva, segna pubblicato);
-- **onboarding guidato nel browser**: la tua AI → chi sei → connessioni (Notion, browser, Slack, dove registri le call) → ICP e target (anche con proposta dell'AI) → modello comunicativo (l'AI legge i tuoi post) → **creatività** (carichi le tue reference o un file Figma e l'AI costruisce il **tuo** template: colori, font, cornice) → Piano Editoriale → moduli e orari;
+- **onboarding guidato nel browser**: la tua AI → chi sei → connessioni (la tua knowledge base, il browser per LinkedIn, dove registri le call, Slack facoltativo) → ogni pagina si **compila dalla tua knowledge base** e tu correggi → ICP e target → modello comunicativo (l'AI legge i tuoi post) → **creatività** (carichi le tue reference o un file Figma e l'AI costruisce il **tuo** template: colori, font, cornice) → moduli e orari;
 - **scheduler interno**: i moduli partono ai loro orari finché il pannello è acceso; pausa, "esegui ora" e log di ogni giro;
 - **la tua AI fa il lavoro**: Claude Code, OpenAI Codex CLI, Gemini CLI o qualsiasi comando che accetta un prompt (adapter).
 
 ```
- Strategia (tua) ──► Content engine ──► Piano Editoriale (Notion) ──► tu approvi e pubblichi
+ Strategia (tua) ──► Content engine ──► Piano editoriale (locale) ──► tu approvi e pubblichi
       ▲                  ▲     ▲                 ▲
       │          hook-library  performance-ledger │ Creatività: immagine col tuo template
       │                  ▲            ▲           │
@@ -34,7 +34,6 @@ Un pannello locale (stile [Paperclip](https://github.com/paperclipai/paperclip))
 
 - **Node.js 20+**
 - **Una AI da terminale**, con login fatto: [Claude Code](https://docs.claude.com/en/docs/claude-code) (consigliato), [Codex CLI](https://github.com/openai/codex) o [Gemini CLI](https://github.com/google-gemini/gemini-cli)
-- **Notion** facoltativo (copia del Piano editoriale, collegamento lead ↔ post)
 - **Browser per LinkedIn**: [Playwright MCP](https://github.com/microsoft/playwright-mcp) con un profilo dedicato (te lo configura l'onboarding) e `npm install playwright` per il login
 - **Python 3** per le creatività (usa Playwright per Python se c'è, altrimenti quello di Node)
 
@@ -57,11 +56,11 @@ node bin/nest-signal.mjs run content-engine
 
 ## Gestirlo con la tua AI
 
-Il Piano editoriale sta nel pannello (bacheca, calendario, scheda del post). Per modificarlo a parole apri la tua AI **in questa cartella** e chiedi, per esempio: «sposta il post sui lead a lunedì», «accorcia il post di giovedì», «rifai l'immagine del post X», «lancia l'Hook Lab adesso». Le istruzioni per l'AI sono in `AGENTS.md` (letto da Codex; `CLAUDE.md` e `GEMINI.md` lo richiamano per Claude Code e Gemini).
+Il Piano editoriale sta nel pannello (bacheca, calendario, scheda del post). Per modificarlo a parole apri la tua AI **in questa cartella** e chiedi, per esempio: «sposta il post sui lead a lunedì», «accorcia il post di giovedì», «rifai l'immagine del post X», «lancia l'Hook Lab adesso». Anche il resto passa da lì: «configuriamo Nest Signal» fa partire l'onboarding, «apri Nest Signal» il pannello. Le istruzioni per l'AI sono in `AGENTS.md` (letto da Codex; `CLAUDE.md` e `GEMINI.md` lo richiamano per Claude Code e Gemini).
 
 ## Dove stanno i dati
 
-Tutto in `~/.nest-signal/` (cambia con `NEST_SIGNAL_HOME`): `config.json`, `data/` (strategia, problemi del target, voce, hook, risultati, diario), `runs/` (log), `browser/` (profilo del browser di Nest Signal). Niente esce dal tuo computer se non verso gli strumenti che colleghi tu.
+Tutto nella cartella `workspace/` del progetto (esclusa da git; cambia con `NEST_SIGNAL_HOME`): `config.json`, `data/` (Piano editoriale in `posts/`, strategia, problemi del target, voce, hook, risultati, lead, diario, `knowledge/` per i tuoi documenti), `runs/` (log), `browser/` (profilo del browser di Nest Signal). Nessun database online: niente esce dal tuo computer se non verso gli strumenti che colleghi tu.
 
 ## Regole che il sistema rispetta sempre
 
@@ -78,7 +77,7 @@ Tutto in `~/.nest-signal/` (cambia con `NEST_SIGNAL_HOME`): `config.json`, `data
 | `server/` | API locale, adapter delle AI, scheduler, esecuzioni |
 | `ui/` | pannello e onboarding (Preact, senza build) |
 | `modules/` | istruzioni dei moduli (`_common.md` + uno per modulo) |
-| `setup/` | lavori dell'onboarding (proposta ICP, modello comunicativo, Notion, controllo connessioni) |
+| `setup/` | lavori dell'onboarding (compila dalla knowledge base, proposta ICP, modello comunicativo, template creatività, controllo connessioni) |
 | `templates/` | file di partenza dei dati |
 | `creative/` | motore delle infografiche (6 tipi) + contratto del template del cliente (`TEMPLATE.md`) |
 

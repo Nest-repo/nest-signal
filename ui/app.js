@@ -61,16 +61,43 @@ function JobBox({ job, label }) {
   </div>`;
 }
 
-function NestCTA({ cfg, title, text, cta }) {
+function NestCTA({ cfg, product, title, text, cta }) {
   return html`<div class="nest-cta">
-    <div class="kicker">Nest · Growth partner</div>
+    <div class="kicker">Nest · ${product || "Il tuo OPS Partner"}</div>
     <h3 style="margin-top:8px">${title}</h3><p>${text}</p>
     <a class="btn accent" href=${cfg?.nest?.booking_url || "https://cal.com/meet-nest/ops-partner"} target="_blank" rel="noopener">${cta || "Prenota 30 minuti con Nest"} →</a>
   </div>`;
 }
 
+// Compila una pagina dalla knowledge base del cliente (lavoro "prefill-<pagina>"); se trova poco, CTA Nest.
+function KBFill({ cfg, draft, page, apply, label }) {
+  const job = useJob(); const [res, setRes] = useState(null);
+  const run = async () => {
+    await post("/api/config", { owner: draft.owner, audience: draft.audience, voice: draft.voice, knowledge: draft.knowledge, meetings: draft.meetings, creative: draft.creative });
+    setRes(null);
+    job.start("setup", "prefill-" + page, async () => { const d = await api("/api/drafts/prefill-" + page); setRes(d); if (d?.campi) apply(d.campi); });
+  };
+  const weak = (job.run && !job.busy && job.run.status !== "ok") || (res && (res.copertura === "bassa" || !Object.keys(res.campi || {}).length));
+  return html`<div class="card soft">
+    <div class="row" style="justify-content:space-between">
+      <div><b>${label || "Compila dalla tua knowledge base"}</b><p class="hint" style="margin-top:2px">La tua AI legge i tuoi documenti, il sito, LinkedIn e le call e propone i campi. Poi li correggi tu.</p></div>
+      <button class="btn primary" disabled=${job.busy} onClick=${run}>${job.busy ? "Sto leggendo…" : "✦ Compila"}</button>
+    </div>
+    ${job.busy && html`<p class="hint" style="margin-top:10px">Può volerci qualche minuto.</p>`}
+    ${res && html`<div style="margin-top:12px">
+      <span class=${"pill " + (res.copertura === "alta" ? "ok" : res.copertura === "media" ? "warn" : "err")}>copertura ${res.copertura || "—"}</span>
+      ${res.fonti?.length > 0 && html`<p class="hint" style="margin-top:8px">Da: ${res.fonti.join(" · ")}</p>`}
+      ${res.mancano?.length > 0 && html`<p class="hint" style="margin-top:4px">Non ho trovato: ${res.mancano.join(" · ")}</p>`}
+    </div>`}
+    ${job.run && !job.busy && job.run.status !== "ok" && html`<details style="margin-top:10px"><summary class="hint">Cosa è successo</summary><pre class="log">${job.log.slice(-2000)}</pre></details>`}
+    ${weak && html`<div style="margin-top:14px"><${NestCTA} cfg=${cfg} product="Company Brain" title="La tua AI non trova abbastanza su di te." text="Una knowledge base ordinata (chi sei, cosa vendi, a chi, come parli, le tue call) fa lavorare meglio ogni AI, non solo Nest Signal. Con Nest la costruiamo insieme e la teniamo aggiornata." cta="Miglioriamo la tua knowledge base" /></div>`}
+  </div>`;
+}
+
+const fillEmpty = (cur, inc) => { const o = { ...cur }; for (const [k, v] of Object.entries(inc || {})) if (v && (!o[k] || (Array.isArray(o[k]) && !o[k].length))) o[k] = v; return o; };
+
 // ---------- ONBOARDING ----------
-const STEPS = ["Benvenuto", "La tua AI", "Chi sei", "Connessioni", "ICP e target", "Come comunichi", "Creatività", "Notion (facoltativo)", "Moduli e orari", "Si parte"];
+const STEPS = ["Benvenuto", "La tua AI", "Chi sei", "Connessioni", "ICP e target", "Come comunichi", "Creatività", "Moduli e orari", "Si parte"];
 
 function Onboarding({ st, reload }) {
   const cfg = st.config;
@@ -84,7 +111,7 @@ function Onboarding({ st, reload }) {
     await post("/api/config", { ...(patch || draft), onboarding: { step: n, done: false } });
     await reload(); setStep(n); scrollTo(0, 0);
   };
-  const Body = [StepWelcome, StepAI, StepProfile, StepConnections, StepICP, StepVoice, StepCreative, StepNotion, StepModules, StepFinish][step];
+  const Body = [StepWelcome, StepAI, StepProfile, StepConnections, StepICP, StepVoice, StepCreative, StepModules, StepFinish][step];
   return html`<div class="ob">
     <aside class="ob-rail">
       <div class="brand"><img src="/brand/nest-logo.svg" alt="" />Nest Signal <small>by Nest</small></div>
@@ -106,12 +133,12 @@ function StepWelcome({ cfg, next }) {
     <h1>LinkedIn che porta call,<br/><em>senza scrivere da zero.</em></h1>
     <p style="font-size:19px;max-width:620px">Nest Signal scrive le bozze nella tua voce partendo dai problemi veri dei tuoi clienti, crea l'immagine di ogni post, misura cosa porta follower, visite e lead, e ogni settimana migliora da solo. Tu approvi e pubblichi.</p>
     <div class="cards">
-      <div class="card feature"><span class="n">1</span><h3>10 minuti</h3><p class="hint">Colleghiamo la tua AI, Notion, il browser e dove registri le call.</p></div>
+      <div class="card feature"><span class="n">1</span><h3>10 minuti</h3><p class="hint">Colleghiamo la tua AI, il browser per LinkedIn e dove registri le call.</p></div>
       <div class="card feature"><span class="n">2</span><h3>Ti conosce</h3><p class="hint">Mappiamo ICP, target e il tuo modo di comunicare, con l'AI che legge i tuoi post.</p></div>
       <div class="card feature"><span class="n">3</span><h3>Gira da solo</h3><p class="hint">Le routine partono agli orari che scegli. Niente viene pubblicato senza di te.</p></div>
     </div>
     <div class="row" style="margin-top:28px"><button class="btn accent" onClick=${() => next()}>Iniziamo →</button></div>
-    <p class="hint" style="margin-top:22px">Costruito da Nest, growth partner per founder che vogliono un sistema e non più ore. <a href=${cfg.nest.site} target="_blank" rel="noopener">usanest.it</a></p>
+    <p class="hint" style="margin-top:22px">Costruito da Nest, il partner operativo che progetta e ottimizza i processi delle aziende in crescita. <a href=${cfg.nest.site} target="_blank" rel="noopener">usanest.it</a></p>
   </div>`;
 }
 
@@ -136,7 +163,7 @@ function StepAI({ st, draft, set, next }) {
     })}
     <label class=${"choice " + (draft.ai.unattended ? "on" : "")}>
       <input type="checkbox" checked=${draft.ai.unattended} onChange=${(e) => set("ai.unattended", e.target.checked)} />
-      <div><b>Esecuzione senza conferme</b><p class="hint">Le routine girano mentre non ci sei: l'AI usa i suoi strumenti (file, Notion, browser) senza chiederti il permesso a ogni passo. Le istruzioni dei moduli vietano di pubblicare, commentare o scrivere su LinkedIn. Se lo togli, l'AI potrebbe fermarsi ad aspettare una conferma.</p></div>
+      <div><b>Esecuzione senza conferme</b><p class="hint">Le routine girano mentre non ci sei: l'AI usa i suoi strumenti (file, browser) senza chiederti il permesso a ogni passo. Le istruzioni dei moduli vietano di pubblicare, commentare o scrivere su LinkedIn. Se lo togli, l'AI potrebbe fermarsi ad aspettare una conferma.</p></div>
     </label>
     <div class="row" style="margin-top:18px">
       <button class="btn ghost" disabled=${job.busy} onClick=${async () => { await post("/api/config", { ai: draft.ai }); job.start("setup", "test-ai"); }}>Prova il collegamento</button>
@@ -148,7 +175,7 @@ function StepAI({ st, draft, set, next }) {
   </div>`;
 }
 
-function StepProfile({ draft, set, next }) {
+function StepProfile({ cfg, draft, set, setDraft, next }) {
   const o = draft.owner;
   const upload = (e) => {
     const f = e.target.files[0]; if (!f) return;
@@ -157,6 +184,7 @@ function StepProfile({ draft, set, next }) {
   return html`<div class="stack">
     <div class="kicker">Passo 3 · Profilo</div>
     <h2>Chi pubblica?</h2>
+    <${KBFill} cfg=${cfg} draft=${draft} page="profilo" apply=${(c) => setDraft({ ...draft, owner: fillEmpty(draft.owner, c.owner) })} />
     <div class="grid2">
       <div><label>Nome e cognome</label><input value=${o.name} onInput=${(e) => set("owner.name", e.target.value)} /></div>
       <div><label>Ruolo (va sotto il nome nelle creatività)</label><input placeholder="es. Founder, Acme" value=${o.role} onInput=${(e) => set("owner.role", e.target.value)} /></div>
@@ -172,9 +200,11 @@ function StepProfile({ draft, set, next }) {
 }
 
 const MEETING_SOURCES = [
-  ["notion", "Notion (database dei meeting)"], ["granola", "Granola"], ["fireflies", "Fireflies"], ["notta", "Notta"], ["tldv", "tl;dv"],
+  ["cartella", "Una cartella di transcript (li copio in workspace/data/meetings)"], ["granola", "Granola"], ["fireflies", "Fireflies"], ["notta", "Notta"], ["tldv", "tl;dv"],
   ["drive", "Google Drive / Meet (transcript)"], ["altro", "Altro strumento"], ["nessuno", "Non registro le call"],
 ];
+
+const KB_SOURCES = [["cartella", "Una cartella di documenti (li copio in workspace/data/knowledge)"], ["drive", "Google Drive"], ["confluence", "Confluence / wiki aziendale"], ["sito", "Solo il sito e LinkedIn"], ["altro", "Altro (la mia AI sa dove)"], ["nessuna", "Non ho una knowledge base"]];
 
 function StepConnections({ st, cfg, draft, set, next }) {
   const [mcp, setMcp] = useState(null);
@@ -182,28 +212,34 @@ function StepConnections({ st, cfg, draft, set, next }) {
   const check = async () => { setMcp({ text: "Controllo…" }); setMcp(await api("/api/mcp")); };
   const has = (n) => mcp?.text && new RegExp(n, "i").test(mcp.text);
   const cmds = ad === "claude" ? [
-    ["Notion (obbligatorio)", "claude mcp add --scope user --transport http notion https://mcp.notion.com/mcp", "Poi apri claude nel terminale, scrivi /mcp e completa il login a Notion."],
-    ["Browser per LinkedIn", `claude mcp add --scope user playwright -- npx -y @playwright/mcp@latest --user-data-dir "${prof}"`, "Usa un profilo browser dedicato: fai login a LinkedIn una volta col pulsante qui sotto."],
-    ["Slack (facoltativo, per i report)", "Aggiungi il connettore Slack della tua organizzazione (claude mcp add …) oppure lascia vuoto: i report andranno in una pagina Notion.", ""],
+    ["Browser per LinkedIn", `claude mcp add --scope user playwright -- npx -y @playwright/mcp@latest --user-data-dir "${prof}"`, "Serve per leggere i tuoi post, le statistiche e cosa funziona su LinkedIn (solo lettura). Poi fai login una volta col pulsante qui sotto."],
+    ["Slack (facoltativo)", "Aggiungi il connettore Slack della tua organizzazione alla tua AI (claude mcp add …), se vuoi ricevere i riepiloghi anche lì.", "Senza Slack trovi tutto nel pannello, alla pagina Oggi."],
   ] : ad === "codex" ? [
-    ["Notion e browser in ~/.codex/config.toml", `[mcp_servers.notion]\nurl = "https://mcp.notion.com/mcp"\n\n[mcp_servers.playwright]\ncommand = "npx"\nargs = ["-y", "@playwright/mcp@latest", "--user-data-dir", "${prof}"]`, "Poi esegui codex mcp login notion (o segui la guida di Codex per i server remoti)."],
-  ] : [["Server MCP", `Configura nella tua AI: Notion (https://mcp.notion.com/mcp) e Playwright MCP con --user-data-dir "${prof}".`, ""]];
+    ["Browser in ~/.codex/config.toml", `[mcp_servers.playwright]\ncommand = "npx"\nargs = ["-y", "@playwright/mcp@latest", "--user-data-dir", "${prof}"]`, "Serve per leggere i tuoi post e le statistiche su LinkedIn (solo lettura)."],
+  ] : [["Browser", `Configura nella tua AI il browser Playwright MCP con --user-data-dir "${prof}".`, ""]];
   return html`<div class="stack">
     <div class="kicker">Passo 4 · Connessioni</div>
     <h2>Colleghiamo i tuoi sistemi</h2>
-    <p class="hint">L'AI lavora con i connettori che le dai. Copia i comandi nel terminale, poi verifica.</p>
+    <p class="hint">Tutti i tuoi dati restano in una cartella sul tuo computer (workspace/). All'AI servono solo il browser per LinkedIn e, se vuoi, Slack. Copia i comandi nel terminale, poi verifica.</p>
     ${cmds.map(([t, c, n]) => html`<div class="card"><h3>${t}</h3><code class="cmd">${c}</code>${n && html`<p class="hint">${n}</p>`}</div>`)}
     <div class="row"><button class="btn ghost" onClick=${check}>Verifica connessioni</button>
       <button class="btn ghost" onClick=${() => post("/api/browser-login").then(() => alert("Si apre una finestra del browser di Nest Signal: fai login a LinkedIn e poi chiudila."))}>Apri il browser e fai login a LinkedIn</button></div>
-    ${mcp && html`<div class="card">${["notion", "playwright", "slack"].map((n) => html`<div class="check"><span class=${"s " + (has(n) ? "ok" : "no")}>${has(n) ? "✓" : "!"}</span><b style="text-transform:capitalize">${n}</b><span class="hint">${has(n) ? "trovato" : n === "slack" ? "facoltativo" : "non trovato"}</span></div>`)}
+    ${mcp && html`<div class="card">${[["playwright", "Browser"], ["slack", "Slack"]].map(([n, l]) => html`<div class="check"><span class=${"s " + (has(n) ? "ok" : "no")}>${has(n) ? "✓" : "!"}</span><b style="font-weight:500">${l}</b><span class="hint">${has(n) ? "collegato" : n === "playwright" ? "non trovato" : "facoltativo"}</span></div>`)}
       <details><summary class="hint">Risposta completa</summary><pre class="log">${mcp.text}</pre></details></div>`}
+
+    <h2 style="margin-top:30px">Dove sta la tua knowledge base?</h2>
+    <p class="hint">Documenti su chi sei, cosa vendi, i tuoi clienti, il tuo tono di voce, il brand. Da qui l'AI compila le prossime pagine al posto tuo.</p>
+    ${KB_SOURCES.map(([id, l]) => html`<label class=${"choice " + (draft.knowledge.source === id ? "on" : "")}><input type="radio" name="kb" checked=${draft.knowledge.source === id} onChange=${() => set("knowledge.source", id)} /><b>${l}</b></label>`)}
+    ${["drive", "confluence", "altro"].includes(draft.knowledge.source) && html`<div><label>Dove esattamente? (cartella, spazio, link)</label><input value=${draft.knowledge.details} onInput=${(e) => set("knowledge.details", e.target.value)} /><p class="hint">Serve il connettore giusto nella tua AI (es. Google Drive).</p></div>`}
+    ${draft.knowledge.source === "cartella" && html`<p class="hint">Metti i documenti (pdf, docx, md, txt) nella cartella workspace/data/knowledge.</p>`}
+    ${draft.knowledge.source === "nessuna" && html`<${NestCTA} cfg=${cfg} product="Company Brain" title="Senza knowledge base ogni AI riparte da zero." text="Con Nest costruiamo la knowledge base della tua azienda (chi sei, offerta, clienti, processi, tono di voce, call) e la teniamo aggiornata: la usano Nest Signal e tutte le tue AI." cta="Costruiamola insieme" />`}
 
     <h2 style="margin-top:30px">Dove registri le call?</h2>
     <p class="hint">Le call sono la miniera migliore: i clienti dicono i loro problemi con le loro parole, e tu parli come scrivi.</p>
     ${MEETING_SOURCES.map(([id, l]) => html`<label class=${"choice " + (draft.meetings.source === id ? "on" : "")}><input type="radio" name="ms" checked=${draft.meetings.source === id} onChange=${() => set("meetings.source", id)} /><b>${l}</b></label>`)}
-    ${draft.meetings.source && draft.meetings.source !== "nessuno" && html`<div><label>Dove li trovo? (link al database Notion, cartella Drive, nome dello spazio…)</label><input value=${draft.meetings.details} onInput=${(e) => set("meetings.details", e.target.value)} /><p class="hint">Assicurati che la tua AI abbia il connettore giusto (es. Notion, Granola, Google Drive).</p></div>`}
-    ${draft.meetings.source === "nessuno" && html`<${NestCTA} cfg=${cfg} title="Senza call registrate il sistema scrive alla cieca." text="È la prima cosa che impostiamo con i clienti Nest: registrazione, trascrizione e un database delle call che alimenta vendite e contenuti. In 30 minuti vediamo come farlo da te." cta="Impostiamolo insieme" />`}
-    <div class="row" style="margin-top:22px"><button class="btn accent" disabled=${!draft.meetings.source} onClick=${() => next({ meetings: draft.meetings })}>Continua →</button></div>
+    ${draft.meetings.source && draft.meetings.source !== "nessuno" && html`<div><label>Dove li trovo? (cartella Drive, spazio Granola, nome del workspace…)</label><input value=${draft.meetings.details} onInput=${(e) => set("meetings.details", e.target.value)} /><p class="hint">${draft.meetings.source === "cartella" ? "Metti i transcript (.txt, .md, .vtt) nella cartella workspace/data/meetings: il sistema li legge da lì." : "Assicurati che la tua AI abbia il connettore giusto (es. Granola, Google Drive)."}</p></div>`}
+    ${draft.meetings.source === "nessuno" && html`<${NestCTA} cfg=${cfg} product="Nest Core" title="Senza call registrate il sistema scrive alla cieca." text="Con Nest Core partiamo dai processi: in un mese mappiamo come lavori e impostiamo registrazione, trascrizione e un archivio delle call che alimenta vendite e contenuti. Poi lo implementiamo con te." cta="Parliamo di Nest Core" />`}
+    <div class="row" style="margin-top:22px"><button class="btn accent" disabled=${!draft.meetings.source || !draft.knowledge.source} onClick=${() => next({ meetings: draft.meetings, knowledge: draft.knowledge })}>Continua →</button></div>
   </div>`;
 }
 
@@ -214,21 +250,11 @@ function painMd(pains) {
 
 function StepICP({ cfg, draft, set, setDraft, next }) {
   const a = draft.audience; const pains = a.pains?.length ? a.pains : [{}, {}, {}];
-  const job = useJob();
   const setPain = (i, k, v) => { const p = pains.map((x) => ({ ...x })); p[i][k] = v; set("audience.pains", p); };
-  const ai = async () => {
-    await post("/api/config", { owner: draft.owner, audience: draft.audience });
-    job.start("setup", "draft-icp", async (r) => {
-      const d = await api("/api/drafts/draft-icp");
-      if (d?.audience) setDraft({ ...draft, audience: { ...draft.audience, ...Object.fromEntries(Object.entries(d.audience).filter(([, v]) => v && (!Array.isArray(v) || v.length))) } });
-    });
-  };
   return html`<div class="stack">
     <div class="kicker">Passo 5 · ICP e target</div>
     <h2>A chi parli, e di che problema?</h2>
-    <p class="hint">Scrivi quello che sai: l'AI può proporre il resto leggendo il tuo sito, il tuo profilo e (se c'è) il tuo CRM. Poi correggi tu.</p>
-    <div class="row"><button class="btn ghost" disabled=${job.busy} onClick=${ai}>✦ Fammi una proposta con l'AI</button></div>
-    <${JobBox} job=${job} label="Proposta ICP" />
+    <${KBFill} cfg=${cfg} draft=${draft} page="icp" apply=${(c) => setDraft({ ...draft, audience: fillEmpty({ ...draft.audience, pains: (draft.audience.pains || []).filter((p) => p.name) }, c.audience) })} />
     <label>Il tuo cliente ideale, in una riga</label><input placeholder="es. Founder di agenzie B2B da 15-30 persone che non reggono più il ritmo" value=${a.icp} onInput=${(e) => set("audience.icp", e.target.value)} />
     <div class="grid2">
       <div><label>Settore</label><input value=${a.sector} onInput=${(e) => set("audience.sector", e.target.value)} /></div>
@@ -245,12 +271,12 @@ function StepICP({ cfg, draft, set, setDraft, next }) {
       <div><label>Come lo dice il cliente</label><input placeholder="«Il CRM lo aggiorno quando mi ricordo»" value=${p.mirror || ""} onInput=${(e) => setPain(i, "mirror", e.target.value)} /></div></div>
       <label>Cosa gli costa</label><input placeholder="ore, soldi, clienti persi…" value=${p.cost || ""} onInput=${(e) => setPain(i, "cost", e.target.value)} /></div>`)}
     ${pains.length < 5 && html`<button class="btn ghost small" style="margin-top:10px" onClick=${() => set("audience.pains", [...pains, {}])}>+ Aggiungi un problema</button>`}
-    <${NestCTA} cfg=${cfg} title="Non hai chiaro il tuo ICP?" text="È il punto da cui partono tutti i progetti Nest: in una call mappiamo chi compra davvero, perché e con quali parole. Il sistema poi parte da lì." cta="Mappiamo l'ICP insieme" />
+    <${NestCTA} cfg=${cfg} product="Sales Engine" title="Non hai chiaro il tuo ICP?" text="Il Sales Engine di Nest parte da lì: definiamo chi compra davvero e con quali parole, costruiamo le liste e l'outbound che portano call qualificate, e colleghiamo tutto al CRM." cta="Scopri il Sales Engine" />
     <div class="row" style="margin-top:22px"><button class="btn accent" disabled=${!a.icp || !pains.some((p) => p.name)} onClick=${async () => { await put("/api/data/pain-map.md", { content: painMd(pains) }); next({ audience: { ...a, pains } }); }}>Continua →</button></div>
   </div>`;
 }
 
-function StepVoice({ draft, set, next }) {
+function StepVoice({ cfg, draft, set, setDraft, next }) {
   const v = draft.voice; const job = useJob();
   const [persona, setPersona] = useState("");
   useEffect(() => { api("/api/data/persona.md").then((d) => setPersona(d.content)); }, []);
@@ -259,6 +285,7 @@ function StepVoice({ draft, set, next }) {
     <div class="kicker">Passo 6 · Modello comunicativo</div>
     <h2>Come parli tu</h2>
     <p class="hint">L'AI legge i tuoi ultimi post su LinkedIn (dal browser di Nest Signal) e scrive il tuo modello di scrittura. Lo correggi qui sotto.</p>
+    <${KBFill} cfg=${cfg} draft=${draft} page="voce" label="Compila dalla tua knowledge base (guida al tono di voce, riferimenti)" apply=${(c) => setDraft({ ...draft, voice: fillEmpty(draft.voice, c.voice), hook_lab: fillEmpty(draft.hook_lab, c.hook_lab) })} />
     <div class="grid2">
       <div><label>Profili che scrivono bene per il tuo pubblico (handle LinkedIn, separati da virgola)</label><input placeholder="es. virgit, andrenogueira3" value=${(draft.hook_lab.reference_creators || []).join(", ")} onInput=${(e) => set("hook_lab.reference_creators", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))} /></div>
       <div><label>Lunghezza dei post</label><select value=${v.length} onChange=${(e) => set("voice.length", e.target.value)}><option value="300-600">Corti (300-600 caratteri)</option><option value="500-1000">Medi (500-1.000)</option><option value="1000-1500">Lunghi (1.000-1.500)</option></select></div>
@@ -273,7 +300,7 @@ function StepVoice({ draft, set, next }) {
 
 const img = (p) => "/creative-img?p=" + encodeURIComponent(p);
 
-function StepCreative({ cfg, draft, set, next }) {
+function StepCreative({ cfg, draft, set, setDraft, next }) {
   const c = draft.creative; const job = useJob();
   const [refs, setRefs] = useState([]); const [res, setRes] = useState(null); const [fb, setFb] = useState(""); const [up, setUp] = useState(false);
   const loadRefs = () => api("/api/references").then(setRefs);
@@ -297,6 +324,7 @@ function StepCreative({ cfg, draft, set, next }) {
     <div class="kicker">Passo 7 · Creatività</div>
     <h2>Le tue creatività, non quelle di un kit</h2>
     <p class="hint">Ogni post esce con un'immagine. Per farla tua, partiamo dalle tue reference: la tua brand identity, grafiche che hai già, post di altri che ti piacciono, oppure un file Figma. L'AI ne ricava colori, font e stile e costruisce il tuo template.</p>
+    <${KBFill} cfg=${cfg} draft=${draft} page="creativita" label="Cerca logo, brand book e grafiche nella tua knowledge base" apply=${(c) => { setDraft({ ...draft, creative: fillEmpty(draft.creative, c.creative) }); loadRefs(); }} />
     <div class="card">
       <h3>Carica le reference</h3>
       <p class="hint">Immagini o PDF (max 5 MB l'uno): logo, brand book, 3-6 grafiche o post che ti rappresentano.</p>
@@ -319,24 +347,8 @@ function StepCreative({ cfg, draft, set, next }) {
       <div class="row"><button class="btn accent" onClick=${() => { set("creative.approved", true); next({ creative: { ...c, approved: true } }); }}>Mi piace, usalo →</button>
         <button class="btn ghost" disabled=${!fb.trim() || job.busy} onClick=${() => build(fb.trim())}>Rifallo con questa nota</button></div>
     </div>`}
-    <${NestCTA} cfg=${cfg} title="Vuoi un template disegnato su misura?" text="Il designer di Nest può costruire con te un sistema visivo per i tuoi contenuti, che poi Nest Signal usa in automatico." cta="Parliamone" />
+    <${NestCTA} cfg=${cfg} product="Design" title="Vuoi un template disegnato su misura?" text="Il designer di Nest può costruire con te un sistema visivo per i tuoi contenuti, che poi Nest Signal usa in automatico." cta="Parliamone" />
     <div class="row" style="margin-top:12px"><button class="btn ghost small" onClick=${() => next({ creative: c })}>Salta per ora (le creatività restano spente)</button></div>
-  </div>`;
-}
-
-function StepNotion({ draft, set, setDraft, next }) {
-  const n = draft.notion; const job = useJob();
-  const create = async () => { await post("/api/config", { notion: n }); job.start("setup", "notion-setup", async () => { const s = await api("/api/status"); setDraft({ ...draft, notion: s.config.notion }); }); };
-  return html`<div class="stack">
-    <div class="kicker">Passo 8 · Notion (facoltativo)</div>
-    <h2>Vuoi anche una copia in Notion?</h2>
-    <p class="hint">Il Piano Editoriale vive qui nel pannello (bacheca e calendario). Se lavori già in Notion, il sistema può tenerne una copia in un tuo database e collegare i lead del CRM ai post. Altrimenti salta questo passo.</p>
-    <label>Database esistente (facoltativo)</label><input placeholder="link al database Notion, oppure lascia vuoto per crearlo" value=${n.editorial_db} onInput=${(e) => set("notion.editorial_db", e.target.value)} />
-    <label>CRM in Notion (facoltativo: serve per collegare i lead ai post)</label><input placeholder="link al database del CRM" value=${n.crm_db} onInput=${(e) => set("notion.crm_db", e.target.value)} />
-    <label>Canale Slack per i report (facoltativo)</label><input placeholder="ID canale, es. C0123ABC" value=${draft.delivery.slack_channel} onInput=${(e) => set("delivery.slack_channel", e.target.value)} />
-    <div class="row" style="margin-top:12px"><button class="btn ghost" disabled=${job.busy} onClick=${create}>✦ ${n.editorial_db ? "Adatta il database" : "Crea il Piano Editoriale"}</button></div>
-    <${JobBox} job=${job} label="Notion" />
-    <div class="row" style="margin-top:22px"><button class="btn accent" onClick=${() => next({ notion: draft.notion, delivery: draft.delivery })}>Continua →</button></div>
   </div>`;
 }
 
@@ -345,7 +357,7 @@ function StepModules({ st, draft, set, next }) {
   const get = (id, k, d) => draft.modules?.[id]?.[k] ?? d;
   const setM = (id, k, v) => set("modules", { ...(draft.modules || {}), [id]: { ...(draft.modules?.[id] || {}), [k]: v } });
   return html`<div class="stack">
-    <div class="kicker">Passo 9 · Moduli</div>
+    <div class="kicker">Passo 8 · Moduli</div>
     <h2>Cosa gira, e quando</h2>
     <p class="hint">Orari in formato cron (minuto ora giorno mese giorno-settimana). Girano finché il pannello resta acceso.</p>
     <div class="cards">${mods.map((m) => { const on = get(m.id, "enabled", m.enabled); return html`<div class="card module">
@@ -354,7 +366,8 @@ function StepModules({ st, draft, set, next }) {
       <label>Orario · <span class="hint">${cronHuman(get(m.id, "cron", m.cron))}</span></label><input class="mono" value=${get(m.id, "cron", m.cron)} onInput=${(e) => setM(m.id, "cron", e.target.value)} />
       ${m.browser && html`<p class="hint">Usa il browser di Nest Signal (LinkedIn), in sola lettura.</p>`}
     </div>`; })}</div>
-    <div class="row" style="margin-top:22px"><button class="btn accent" onClick=${() => next({ modules: draft.modules })}>Continua →</button></div>
+    <div class="card"><label style="margin-top:0">Canale Slack per i riepiloghi (facoltativo)</label><input placeholder="ID canale, es. C0123ABC — vuoto: riepiloghi solo nel pannello" value=${draft.delivery.slack_channel} onInput=${(e) => set("delivery.slack_channel", e.target.value)} /></div>
+    <div class="row" style="margin-top:22px"><button class="btn accent" onClick=${() => next({ modules: draft.modules, delivery: draft.delivery })}>Continua →</button></div>
   </div>`;
 }
 
@@ -381,7 +394,7 @@ function StepFinish({ st, cfg, reload }) {
       <button class="btn accent" disabled=${busy} onClick=${() => finish(true)}>Avvia e fai il primo giro adesso</button>
       <button class="btn ghost" disabled=${busy} onClick=${() => finish(false)}>Vai al pannello</button>
     </div>
-    <div style="margin-top:30px"><${NestCTA} cfg=${cfg} title="Vuoi che il sistema lavori anche dietro LinkedIn?" text="Nest progetta e gestisce il sistema operativo della tua azienda: processi, CRM, automazioni, reporting. Nest Signal è un pezzo di come lavoriamo." cta="Parliamone" /></div>
+    <div style="margin-top:30px"><${NestCTA} cfg=${cfg} product="Nest Core" title="Vuoi che il sistema lavori anche dietro LinkedIn?" text="Con Nest Core progettiamo e ottimizziamo i processi della tua azienda (operation prima, tecnologia dopo) e poi li implementiamo: CRM, automazioni, dashboard. Nest Signal è un pezzo di come lavoriamo." cta="Parliamo di Nest Core" /></div>
   </div>`;
 }
 
@@ -544,7 +557,7 @@ function Activity() {
 
 function Settings({ st, reload }) {
   const [c, setC] = useState(st.config); const [ok, setOk] = useState("");
-  const save = async () => { await post("/api/config", { ai: c.ai, delivery: c.delivery, notion: c.notion, brand: c.brand }); setOk("Salvato"); reload(); };
+  const save = async () => { await post("/api/config", { ai: c.ai, delivery: c.delivery, brand: c.brand }); setOk("Salvato"); reload(); };
   const reopen = async (step) => { await post("/api/config", { onboarding: { done: false, step } }); await reload(); location.hash = "#/onboarding"; };
   return html`<div>
     <${Hero} kicker="Impostazioni" title="Motore e collegamenti" />
@@ -554,7 +567,6 @@ function Settings({ st, reload }) {
         <div class="grid2">
           <div><label>AI che fa il lavoro</label><select value=${c.ai.adapter} onChange=${(e) => setC({ ...c, ai: { ...c.ai, adapter: e.target.value } })}>${Object.entries(st.adapters).map(([id, a]) => html`<option value=${id}>${a.label}</option>`)}</select></div>
           <div><label>Comando personalizzato</label><input value=${c.ai.custom_command} placeholder="usa {prompt}" onInput=${(e) => setC({ ...c, ai: { ...c.ai, custom_command: e.target.value } })} /></div>
-          <div><label>Piano Editoriale (Notion)</label><input value=${c.notion.editorial_db} onInput=${(e) => setC({ ...c, notion: { ...c.notion, editorial_db: e.target.value } })} /></div>
           <div><label>Canale Slack per i report</label><input value=${c.delivery.slack_channel} onInput=${(e) => setC({ ...c, delivery: { ...c.delivery, slack_channel: e.target.value } })} /></div>
         </div>
         <div class="row" style="margin-top:20px"><button class="btn primary" onClick=${save}>Salva</button><span class="hint">${ok}</span></div>

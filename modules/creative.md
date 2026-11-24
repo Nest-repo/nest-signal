@@ -17,7 +17,7 @@ In `DATA/posts/` prendi i post con stato Bozza / In revisione / Da pubblicare, *
 3. Scrivi lo spec JSON in `DATA/creative/<YYYY-MM-DD>-<slug>/spec.json` (campi in `GRAFICI.md`): `kicker`, `titolo` + `titolo_arancio` (l'hook diviso in due), `grafico`; `chiusura` solo se aggiunge qualcosa che l'immagine non dice.
 4. Genera: `python3 KIT/creative/bin/post_creative.py --spec <spec> --out <cartella> --config CONFIG --template DATA/creative/template.html --tokens DATA/creative/tokens.json` → `creativita.png` (2160×2700).
 5. **Guarda il PNG** (obbligatorio): coprendo il titolo, l'infografica da sola fa capire il post? Si legge da telefono? Niente testo tagliato o linee sopra le etichette? Se no, correggi lo spec e rigenera (max 3 tentativi).
-6. Scrivi nel post `creativita` = percorso assoluto del PNG e `layout` = tipo di infografica. Se c'è Notion collegato, carica l'immagine anche nella colonna Creatività della riga corrispondente (se il connettore non sa caricare file, salta).
+6. Scrivi nel post `creativita` = percorso assoluto del PNG e `layout` = tipo di infografica.
 7. Diario: `{"tipo":"creatività","titolo":"<hook>","link":"#/piano/<id>","immagine":"<percorso del PNG>"}`.
 
 Se Python 3 o Playwright mancano, fermati e scrivi nel log cosa installare (`pip3 install playwright && python3 -m playwright install chromium`, oppure `npm install playwright` nel kit).

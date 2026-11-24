@@ -14,8 +14,11 @@ export const SETUP_JOBS = {
   "check-connections": { name: "Controllo connessioni", file: "setup/check-connections.md" },
   "draft-icp": { name: "Proposta ICP e target", file: "setup/draft-icp.md" },
   "draft-voice": { name: "Modello comunicativo dai tuoi post", file: "setup/draft-voice.md" },
-  "notion-setup": { name: "Creazione Piano Editoriale", file: "setup/notion-setup.md" },
   "design-template": { name: "Template delle creatività", file: "setup/design-template.md" },
+  "prefill-profilo": { name: "Profilo dalla knowledge base", file: "setup/prefill.md", page: "profilo" },
+  "prefill-icp": { name: "ICP e target dalla knowledge base", file: "setup/prefill.md", page: "icp" },
+  "prefill-voce": { name: "Modello comunicativo dalla knowledge base", file: "setup/prefill.md", page: "voce" },
+  "prefill-creativita": { name: "Creatività dalla knowledge base", file: "setup/prefill.md", page: "creativita" },
 };
 
 export function moduleSettings(cfg) {

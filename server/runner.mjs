@@ -1,4 +1,4 @@
-// Esecuzioni: un run alla volta (il profilo browser e Notion non amano i run paralleli), coda FIFO, log su file.
+// Esecuzioni: un run alla volta (il profilo browser non ama i run paralleli), coda FIFO, log su file.
 import fs from "node:fs";
 import path from "node:path";
 import { PKG, DATA, RUNS, BROWSER_PROFILE, loadConfig, loadState, saveState } from "./store.mjs";
@@ -14,7 +14,8 @@ function promptFor(kind, target) {
   if (kind === "setup" && target === "test-ai") return `${head} Questo è solo un test di collegamento: non leggere né scrivere file, rispondi esattamente "NEST SIGNAL OK" e nient'altro.`;
   const file = kind === "setup" ? SETUP_JOBS[target].file : `modules/${target}.md`;
   const common = kind === "setup" ? `Leggi ${PKG}/modules/_common.md solo per percorsi e regole (ignora il controllo "onboarding non completato": sei proprio nell'onboarding)` : `Leggi per intero ${PKG}/modules/_common.md`;
-  return `${head} ${common}, poi leggi per intero ed esegui ESATTAMENTE ${PKG}/${file}. Lavora in italiano salvo diversa lingua in CONFIG.`;
+  const page = kind === "setup" && SETUP_JOBS[target].page ? ` PAGINA = ${SETUP_JOBS[target].page}.` : "";
+  return `${head}${page} ${common}, poi leggi per intero ed esegui ESATTAMENTE ${PKG}/${file}. Lavora in italiano salvo diversa lingua in CONFIG.`;
 }
 
 export function enqueue(kind, target, trigger = "manuale") {
