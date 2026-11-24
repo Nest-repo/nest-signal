@@ -4,12 +4,12 @@ Copia il testo qui sotto e incollalo nella tua AI da terminale (Claude Code, Cod
 
 ---
 
-Installa e avvia **Nest Signal** sul mio computer, passo per passo, spiegandomi in una riga cosa fai prima di ogni comando. Parla in italiano.
+Installa e avvia **Nest Signal** (https://github.com/Nest-repo/nest-signal) sul mio computer, passo per passo, spiegandomi in una riga cosa fai prima di ogni comando. Parla in italiano.
 
 1. **Controlla i requisiti**: `git`, **Node.js 20 o più** (`node -v`) e **Python 3** (`python3 --version`, serve per le immagini dei post). Se manca qualcosa, dimmi come installarlo sul mio sistema e aspetta il mio ok prima di installare.
 2. **Scarica il progetto**:
    `git clone https://github.com/Nest-repo/nest-signal.git && cd nest-signal`
-   Se GitHub chiede l'accesso, fermati e dimmelo: devo essere stato invitato al repository (oppure usare il link che mi ha mandato Nest).
+   Il repository è pubblico: non serve nessun accesso. Se `git` non c'è, scarica lo zip da https://github.com/Nest-repo/nest-signal/archive/refs/heads/main.zip e scompattalo.
 3. **Installa**: `npm install` dentro la cartella `nest-signal`.
 4. **Avvia l'onboarding**: `npm run onboard` in background, poi apri `http://127.0.0.1:3210` (nel browser integrato se lo hai, altrimenti nel mio browser).
 5. **Accompagnami nell'onboarding**, che è guidato nel pannello:
