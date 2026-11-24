@@ -433,18 +433,11 @@ function StepModules({ st, draft, set, next }) {
   </div>`;
 }
 
-function strategyMd(c) {
-  const a = c.audience;
-  return `# Strategia LinkedIn\n\n<!-- Generata dall'onboarding il ${new Date().toLocaleDateString("it-IT")}. Modificala dal pannello (Strategia): è la fonte delle regole editoriali. -->\n\n## Obiettivo\n- ${a.goal}. Ogni post si misura su follower, visite al profilo, commenti e lead, poi sulle impression.\n\n## Target\n- **Chi**: ${a.icp}\n- Settore: ${a.sector || "—"} · Dimensione: ${a.size || "—"} · Decide: ${a.decision_maker || "—"}\n- **Non è il target**: ${a.not_icp || "—"}\n- **Cosa vendo**: ${a.offer || "—"} (mai in ogni post)\n\n## La settimana\n| Giorno | Funzione |\n|---|---|\n| lun | Reach — il problema riconoscibile |\n| mar | Connection — persona e processo |\n| mer | Authority — un caso con un numero |\n| gio | Conversion — il prossimo passo ovvio |\n\n## Come si scrive\n- Lunghezza ${c.voice.length} caratteri, una idea per post, prima persona: mostrare come lavoro, non insegnare.\n- Hook come frase normale, con posta in gioco (vedi hook-library.md sezione 0).\n- Mai: ${c.voice.never || "—"}\n\n## CTA ammesse\n- ${c.voice.cta.join("\n- ")}\n\n## Creatività\n- Visuali, non testuali: il testo è già nel post. Template con i colori del brand.\n`;
-}
-
 function StepFinish({ st, cfg, reload }) {
   const [busy, setBusy] = useState(false);
   const finish = async (runFirst) => {
     setBusy(true);
-    const cur = (await api("/api/data/strategy.md")).content;
-    if (!cur || cur.includes("<!-- TEMPLATE -->") || cur.length < 400) await put("/api/data/strategy.md", { content: strategyMd(cfg) });
-    await post("/api/onboarding/finish");
+    await post("/api/onboarding/finish"); // scrive anche la strategia dalla configurazione, se è ancora il modello
     if (runFirst) { await post("/api/run", { kind: "module", target: "performance" }); await post("/api/run", { kind: "module", target: "content-engine" }); }
     await reload(); location.hash = "#/oggi";
   };
@@ -580,13 +573,24 @@ function Modules({ st, reload }) {
 const FILES = [["strategy.md", "Strategia"], ["pain-map.md", "Problemi del target"], ["persona.md", "La tua voce"], ["hook-library.md", "Libreria hook"]];
 function Strategy() {
   const [f, setF] = useState(FILES[0][0]); const [txt, setTxt] = useState(""); const [saved, setSaved] = useState("");
-  useEffect(() => { api(`/api/data/${f}`).then((d) => { setTxt(d.content); setSaved(""); }); }, [f]);
+  const [tpl, setTpl] = useState(false);
+  const load = () => { api(`/api/data/${f}`).then((d) => { setTxt(d.content); setSaved(""); }); api("/api/strategy/status").then((s) => setTpl(s.template)); };
+  useEffect(load, [f]);
+  const gen = async (force) => {
+    if (force && !confirm("Riscrivo la strategia da quello che hai messo nell'onboarding (ICP, problemi, voce). Le modifiche fatte a mano qui vanno perse. Procedo?")) return;
+    await post("/api/strategy/generate", { force }); setF("strategy.md"); load(); setSaved("Strategia generata");
+  };
   return html`<div>
     <${Hero} kicker="Strategia" title="Da dove pesca il sistema" text="La strategia è l'unica fonte delle regole editoriali. I dati (cosa converte, hook validati) li aggiornano i moduli da soli." />
+    ${tpl && html`<div class="card" style="margin-bottom:16px;border:1.5px solid var(--accent)">
+      <h3>La strategia è ancora il modello vuoto</h3>
+      <p class="hint" style="margin-top:6px">La genero da quello che hai messo nell'onboarding: obiettivo, ICP, problemi del target, settimana, come scrivi, CTA e cosa non dire mai. Poi la correggi qui.</p>
+      <div class="row" style="margin-top:12px"><button class="btn primary" onClick=${() => gen(false)}>Genera la strategia</button></div>
+    </div>`}
     <div class="card stack">
       <div class="tabs">${FILES.map(([n, l]) => html`<button class=${"tab " + (f === n ? "on" : "")} onClick=${() => setF(n)}>${l}</button>`)}</div>
       <textarea style="min-height:460px" value=${txt} onInput=${(e) => setTxt(e.target.value)}></textarea>
-      <div class="row"><button class="btn primary" onClick=${async () => { await put(`/api/data/${f}`, { content: txt }); setSaved("Salvato"); }}>Salva</button><span class="hint">${saved}</span></div>
+      <div class="row"><button class="btn primary" onClick=${async () => { await put(`/api/data/${f}`, { content: txt }); setSaved("Salvato"); setTpl(false); }}>Salva</button>${f === "strategy.md" && !tpl && html`<button class="btn ghost" onClick=${() => gen(true)}>Rigenera dall'onboarding</button>`}<span class="hint">${saved}</span></div>
     </div>
   </div>`;
 }

@@ -8,6 +8,8 @@ import { MODULES, SETUP_JOBS, moduleSettings } from "./modules.mjs";
 import { ADAPTERS, detect, mcpServers } from "./adapters.mjs";
 import { install as aiInstall, login as aiLogin, sendCode as aiCode, session as aiSession, active as aiActive, openTerminal } from "./ai-setup.mjs";
 import { enqueue, runs, runLog, recover } from "./runner.mjs";
+import { health, invalidate } from "./health.mjs";
+import { ensureStrategy, strategyIsTemplate } from "./strategy.mjs";
 import { reschedule, nextRuns } from "./scheduler.mjs";
 import { listPosts, getPost, createPost, updatePost, STATI, FUNNEL } from "./posts.mjs";
 
@@ -54,17 +56,21 @@ function status() {
 const routes = {
   "GET /api/status": async () => status(),
   "GET /api/detect": async () => detect(),
+  "GET /api/health": async () => health(),
+  "POST /api/health/refresh": async () => health({ fresh: true }),
   "GET /api/ai/active": async () => aiActive(),
   "POST /api/ai/install": async (b) => aiInstall(b.adapter),
   "POST /api/ai/login": async (b) => aiLogin(b.adapter),
   "POST /api/ai/code": async (b) => aiCode(b.id, b.code),
   "POST /api/ai/terminal": async (b) => openTerminal(b.adapter),
   "GET /api/mcp": async () => mcpServers(loadConfig().ai.adapter),
-  "POST /api/config": async (b) => { const c = saveConfig(b); reschedule(); return c; },
+  "POST /api/config": async (b) => { const c = saveConfig(b); reschedule(); if (b.ai) { invalidate("ai"); invalidate("browser"); } return c; },
   "GET /api/runs": async () => runs(),
   "GET /api/feed": async () => readFeed(),
   "POST /api/run": async (b) => enqueue(b.kind === "setup" ? "setup" : "module", b.target, "manuale"),
-  "POST /api/onboarding/finish": async () => { const c = saveConfig({ onboarding: { done: true, step: 99 } }); reschedule(); return c; },
+  "POST /api/onboarding/finish": async () => { const c = saveConfig({ onboarding: { done: true, step: 99 } }); ensureStrategy(); reschedule(); return c; },
+  "GET /api/strategy/status": async () => ({ template: strategyIsTemplate() }),
+  "POST /api/strategy/generate": async (b) => ({ written: ensureStrategy({ force: !!b.force }) }),
   "GET /api/posts": async () => ({ posts: listPosts(), stati: STATI, funnel: FUNNEL }),
   "POST /api/posts": async (b) => createPost(b),
   "GET /api/question": async () => {

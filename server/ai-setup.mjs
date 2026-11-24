@@ -6,6 +6,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { ADAPTERS, AI_DIR } from "./adapters.mjs";
+import { invalidate } from "./health.mjs";
 
 const sessions = new Map(); // id -> { id, kind, adapter, proc, log, status, url }
 const MAX_LOG = 20000;
@@ -29,7 +30,7 @@ function track(kind, adapter, proc) {
   proc.stdout?.on("data", onData);
   proc.stderr?.on("data", onData);
   proc.on("error", (e) => { s.status = "errore"; s.log += `\n${e.message}`; });
-  proc.on("close", (code) => { if (s.status === "in corso") s.status = code === 0 ? "ok" : "errore"; s.proc = null; });
+  proc.on("close", (code) => { if (s.status === "in corso") s.status = code === 0 ? "ok" : "errore"; s.proc = null; invalidate("ai"); });
   sessions.set(id, s);
   return s;
 }

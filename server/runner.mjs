@@ -4,6 +4,7 @@ import path from "node:path";
 import { PKG, DATA, RUNS, BROWSER_PROFILE, loadConfig, loadState, saveState } from "./store.mjs";
 import { MODULES, SETUP_JOBS } from "./modules.mjs";
 import { launch } from "./adapters.mjs";
+import { checks, blockers, NEEDS } from "./health.mjs";
 
 const queue = [];
 let current = null;
@@ -40,13 +41,25 @@ function update(id, patch) {
   return r;
 }
 
-function next() {
+async function next() {
   if (current || !queue.length) return;
   current = queue.shift();
   const cfg = loadConfig();
   const logPath = path.join(RUNS, `${current.id}.log`);
+  // Prima di lanciare l'AI: se manca qualcosa di indispensabile il giro non parte (niente crediti sprecati).
+  if (current.kind === "module") {
+    let miss = [];
+    try { miss = blockers(current.target, await checks()); } catch {}
+    if (miss.length) {
+      const msg = "Giro non partito. Manca: " + miss.map((n) => NEEDS[n].missing).join("; ") + ".";
+      fs.writeFileSync(logPath, msg + "\n");
+      update(current.id, { status: "bloccato", missing: miss, error: msg, started_at: new Date().toISOString(), ended_at: new Date().toISOString() });
+      current = null; return next();
+    }
+  }
+  const startedAt = new Date().toISOString();
   const log = fs.createWriteStream(logPath);
-  update(current.id, { status: "in corso", started_at: new Date().toISOString() });
+  update(current.id, { status: "in corso", started_at: startedAt });
   let child;
   try {
     child = launch(cfg, promptFor(current.kind, current.target), { pkg: PKG, data: DATA });
@@ -64,7 +77,15 @@ function next() {
     clearTimeout(timer);
     log.end();
     const out = fs.existsSync(logPath) ? fs.readFileSync(logPath, "utf8") : "";
-    update(current.id, { status: code === 0 ? "ok" : "errore", exit_code: code, ended_at: new Date().toISOString(), summary: out.trim().split("\n").slice(-6).join("\n").slice(0, 600) });
+    let esito = null;
+    if (current.kind === "module") {
+      try {
+        const st = JSON.parse(fs.readFileSync(path.join(DATA, "state", `${current.target}.json`), "utf8"));
+        if (st.esito?.ts >= startedAt) esito = st.esito;
+      } catch {}
+    }
+    const status = code !== 0 ? "errore" : esito?.livello === "bloccato" ? "bloccato" : esito?.livello === "parziale" ? "parziale" : "ok";
+    update(current.id, { status, esito, missing: esito?.saltato || [], exit_code: code, ended_at: new Date().toISOString(), summary: out.trim().split("\n").slice(-6).join("\n").slice(0, 600) });
     current = null;
     next();
   });
