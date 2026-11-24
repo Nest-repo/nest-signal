@@ -6,7 +6,7 @@ import { spawn } from "node:child_process";
 import { PKG, HOME, DATA, loadConfig, saveConfig, readData, writeData, readFeed, EDITABLE } from "./store.mjs";
 import { MODULES, SETUP_JOBS, moduleSettings } from "./modules.mjs";
 import { ADAPTERS, detect, mcpServers } from "./adapters.mjs";
-import { install as aiInstall, login as aiLogin, sendCode as aiCode, session as aiSession, openTerminal } from "./ai-setup.mjs";
+import { install as aiInstall, login as aiLogin, sendCode as aiCode, session as aiSession, active as aiActive, openTerminal } from "./ai-setup.mjs";
 import { enqueue, runs, runLog, recover } from "./runner.mjs";
 import { reschedule, nextRuns } from "./scheduler.mjs";
 import { listPosts, getPost, createPost, updatePost, STATI, FUNNEL } from "./posts.mjs";
@@ -54,6 +54,7 @@ function status() {
 const routes = {
   "GET /api/status": async () => status(),
   "GET /api/detect": async () => detect(),
+  "GET /api/ai/active": async () => aiActive(),
   "POST /api/ai/install": async (b) => aiInstall(b.adapter),
   "POST /api/ai/login": async (b) => aiLogin(b.adapter),
   "POST /api/ai/code": async (b) => aiCode(b.id, b.code),

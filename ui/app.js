@@ -151,7 +151,10 @@ function AISetup({ id, a, d, refresh }) {
   const [err, setErr] = useState("");
   const [term, setTerm] = useState(null);
   const timer = useRef(null);
-  useEffect(() => () => clearInterval(timer.current), []);
+  useEffect(() => {
+    api("/api/ai/active").then((a) => a?.[id] && follow(a[id])).catch(() => {});
+    return () => clearInterval(timer.current);
+  }, [id]);
   const follow = (s) => {
     setSess(s); clearInterval(timer.current);
     timer.current = setInterval(async () => {
@@ -187,7 +190,7 @@ function AISetup({ id, a, d, refresh }) {
       ${busy && sess?.url && html`<a class="btn ghost small" href=${sess.url} target="_blank" rel="noopener">Il browser non si è aperto? Apri la pagina di accesso</a>`}
     </div>
     ${busy && html`<div class="row" style="margin-top:10px">
-      <input style="flex:1" placeholder="Se la pagina ti dà un codice, incollalo qui" value=${code} onInput=${(e) => setCode(e.target.value)} />
+      <input style="flex:1" placeholder="Hai fatto l'accesso e la pagina mostra un codice? Incollalo qui" value=${code} onInput=${(e) => setCode(e.target.value)} />
       <button class="btn ghost small" disabled=${!code.trim()} onClick=${(e) => { e.preventDefault(); sendCode(); }}>Invia codice</button>
     </div>`}
     ${sess?.status === "errore" && html`<details style="margin-top:8px"><summary class="hint">L'accesso non è andato: cosa è successo</summary><pre class="log">${sess.log}</pre></details>`}

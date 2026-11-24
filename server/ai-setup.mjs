@@ -72,6 +72,13 @@ export function sendCode(id, code) {
   return view(s);
 }
 
+// Sessioni ancora aperte (per riprenderle se il pannello viene ricaricato).
+export function active() {
+  const out = {};
+  for (const s of sessions.values()) if (s.proc) out[s.adapter] = view(s);
+  return out;
+}
+
 export function session(id) {
   const s = sessions.get(id);
   if (!s) throw new Error("sessione non trovata");
