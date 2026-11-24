@@ -1,6 +1,7 @@
 // Strategia editoriale generata dalla configurazione dell'onboarding.
 // Si scrive solo se strategy.md è ancora il modello di partenza: mai sopra una strategia scritta dal cliente.
 import fs from "node:fs";
+import crypto from "node:crypto";
 import path from "node:path";
 import { PKG, DATA, loadConfig } from "./store.mjs";
 
@@ -58,9 +59,50 @@ export function strategyMd(c = loadConfig()) {
   return lines.join("\n");
 }
 
-// Scrive la strategia se è ancora il modello (o se force). Ritorna true se l'ha scritta.
+// Traccia l'ultima strategia scritta in automatico: se il cliente non l'ha toccata, la si può sostituire.
+const STATE = () => path.join(DATA, "state", "strategy.json");
+const DRAFT = () => path.join(DATA, "drafts", "strategy.md");
+const hash = (t) => crypto.createHash("sha1").update(norm(t)).digest("hex");
+const current = () => { try { return fs.readFileSync(path.join(DATA, "strategy.md"), "utf8"); } catch { return ""; } };
+
+function writeAuto(content, source) {
+  fs.writeFileSync(path.join(DATA, "strategy.md"), content);
+  fs.mkdirSync(path.dirname(STATE()), { recursive: true });
+  fs.writeFileSync(STATE(), JSON.stringify({ auto_hash: hash(content), source, ts: new Date().toISOString() }, null, 2));
+}
+
+const noComments = (t) => t.replace(/<!--[\s\S]*?-->/g, "");
+export function strategyUntouched() {
+  if (strategyIsTemplate()) return true;
+  // ancora identica alla partenza veloce (anche se scritta prima che tenessimo traccia)
+  if (norm(noComments(current())) === norm(noComments(strategyMd()))) return true;
+  try { return JSON.parse(fs.readFileSync(STATE(), "utf8")).auto_hash === hash(current()); } catch { return false; }
+}
+
+// Partenza veloce dalla configurazione, solo se la strategia è ancora il modello (o se force).
 export function ensureStrategy({ force = false } = {}) {
   if (!force && !strategyIsTemplate()) return false;
-  fs.writeFileSync(path.join(DATA, "strategy.md"), strategyMd());
+  writeAuto(strategyMd(), "onboarding");
   return true;
+}
+
+// Bozza scritta dall'AI (setup/draft-strategy.md): si applica da sola se il cliente non ha toccato la strategia,
+// altrimenti resta come proposta finché non la accetta.
+export function applyDraft({ force = false } = {}) {
+  if (!fs.existsSync(DRAFT())) return { applied: false, draft: false };
+  if (!force && !strategyUntouched()) return { applied: false, draft: true };
+  writeAuto(fs.readFileSync(DRAFT(), "utf8"), "ai");
+  fs.renameSync(DRAFT(), path.join(DATA, "drafts", "strategy-applicata.md"));
+  return { applied: true, draft: false };
+}
+
+export function discardDraft() {
+  if (fs.existsSync(DRAFT())) fs.renameSync(DRAFT(), path.join(DATA, "drafts", "strategy-scartata.md"));
+  return { ok: true };
+}
+
+export function strategyStatus() {
+  let source = null;
+  try { source = JSON.parse(fs.readFileSync(STATE(), "utf8")).source; } catch {}
+  return { template: strategyIsTemplate(), untouched: strategyUntouched(), draft: fs.existsSync(DRAFT()), draft_text: fs.existsSync(DRAFT()) ? fs.readFileSync(DRAFT(), "utf8") : "", source: strategyUntouched() ? source : "cliente" };
 }

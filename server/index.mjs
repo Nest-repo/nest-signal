@@ -9,7 +9,7 @@ import { ADAPTERS, detect, mcpServers } from "./adapters.mjs";
 import { install as aiInstall, login as aiLogin, sendCode as aiCode, session as aiSession, active as aiActive, openTerminal } from "./ai-setup.mjs";
 import { enqueue, runs, runLog, recover } from "./runner.mjs";
 import { health, invalidate } from "./health.mjs";
-import { ensureStrategy, strategyIsTemplate } from "./strategy.mjs";
+import { ensureStrategy, strategyStatus, applyDraft, discardDraft } from "./strategy.mjs";
 import { reschedule, nextRuns } from "./scheduler.mjs";
 import { listPosts, getPost, createPost, updatePost, STATI, FUNNEL } from "./posts.mjs";
 
@@ -68,9 +68,12 @@ const routes = {
   "GET /api/runs": async () => runs(),
   "GET /api/feed": async () => readFeed(),
   "POST /api/run": async (b) => enqueue(b.kind === "setup" ? "setup" : "module", b.target, "manuale"),
-  "POST /api/onboarding/finish": async () => { const c = saveConfig({ onboarding: { done: true, step: 99 } }); ensureStrategy(); reschedule(); return c; },
-  "GET /api/strategy/status": async () => ({ template: strategyIsTemplate() }),
+  // fine onboarding: subito una strategia di partenza dai dati, poi la tua AI scrive quella vera (si applica da sola)
+  "POST /api/onboarding/finish": async () => { const c = saveConfig({ onboarding: { done: true, step: 99 } }); ensureStrategy(); enqueue("setup", "draft-strategy", "onboarding"); reschedule(); return c; },
+  "GET /api/strategy/status": async () => strategyStatus(),
   "POST /api/strategy/generate": async (b) => ({ written: ensureStrategy({ force: !!b.force }) }),
+  "POST /api/strategy/apply": async () => applyDraft({ force: true }),
+  "POST /api/strategy/discard": async () => discardDraft(),
   "GET /api/posts": async () => ({ posts: listPosts(), stati: STATI, funnel: FUNNEL }),
   "POST /api/posts": async (b) => createPost(b),
   "GET /api/question": async () => {

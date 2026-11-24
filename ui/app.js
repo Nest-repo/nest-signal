@@ -571,26 +571,43 @@ function Modules({ st, reload }) {
 }
 
 const FILES = [["strategy.md", "Strategia"], ["pain-map.md", "Problemi del target"], ["persona.md", "La tua voce"], ["hook-library.md", "Libreria hook"]];
-function Strategy() {
+function Strategy({ st, reload }) {
   const [f, setF] = useState(FILES[0][0]); const [txt, setTxt] = useState(""); const [saved, setSaved] = useState("");
-  const [tpl, setTpl] = useState(false);
-  const load = () => { api(`/api/data/${f}`).then((d) => { setTxt(d.content); setSaved(""); }); api("/api/strategy/status").then((s) => setTpl(s.template)); };
+  const [ss, setSs] = useState(null); const [showDraft, setShowDraft] = useState(false);
+  const job = useJob();
+  const load = () => { api(`/api/data/${f}`).then((d) => { setTxt(d.content); setSaved(""); }); api("/api/strategy/status").then(setSs); };
   useEffect(load, [f]);
-  const gen = async (force) => {
-    if (force && !confirm("Riscrivo la strategia da quello che hai messo nell'onboarding (ICP, problemi, voce). Le modifiche fatte a mano qui vanno perse. Procedo?")) return;
-    await post("/api/strategy/generate", { force }); setF("strategy.md"); load(); setSaved("Strategia generata");
+  const aiRunning = job.busy || st.running.some((r) => r.target === "draft-strategy");
+  useEffect(() => { if (!aiRunning) return; const t = setInterval(() => { reload(); load(); }, 5000); return () => clearInterval(t); }, [aiRunning, f]);
+  const writeWithAI = () => {
+    if (ss && !ss.untouched && !confirm("La tua AI scrive una nuova strategia leggendo knowledge base, problemi del target, voce e post pubblicati. Hai già modificato la tua: te la propongo e decidi tu se usarla. Procedo?")) return;
+    job.start("setup", "draft-strategy", () => { setF("strategy.md"); load(); reload(); });
   };
+  const quick = async () => { await post("/api/strategy/generate", { force: false }); setF("strategy.md"); load(); setSaved("Partenza veloce scritta"); };
+  const apply = async () => { await post("/api/strategy/apply"); setShowDraft(false); setF("strategy.md"); load(); setSaved("Nuova strategia applicata"); };
+  const discard = async () => { await post("/api/strategy/discard"); setShowDraft(false); load(); };
+  const by = ss?.source === "ai" ? "scritta dalla tua AI" : ss?.source === "onboarding" ? "partenza veloce dai dati dell'onboarding" : ss?.source === "cliente" ? "modificata da te" : "";
   return html`<div>
-    <${Hero} kicker="Strategia" title="Da dove pesca il sistema" text="La strategia è l'unica fonte delle regole editoriali. I dati (cosa converte, hook validati) li aggiornano i moduli da soli." />
-    ${tpl && html`<div class="card" style="margin-bottom:16px;border:1.5px solid var(--accent)">
-      <h3>La strategia è ancora il modello vuoto</h3>
-      <p class="hint" style="margin-top:6px">La genero da quello che hai messo nell'onboarding: obiettivo, ICP, problemi del target, settimana, come scrivi, CTA e cosa non dire mai. Poi la correggi qui.</p>
-      <div class="row" style="margin-top:12px"><button class="btn primary" onClick=${() => gen(false)}>Genera la strategia</button></div>
+    <${Hero} kicker="Strategia" title="Da dove pesca il sistema" text="La strategia è l'unica fonte delle regole editoriali: tutti i moduli la leggono per prima. La scrive la tua AI dalla tua knowledge base, oppure la scrivi tu.">
+      ${by && html`<span class="chip">${I("strategia")} ${by}</span>`}
+    <//>
+    ${aiRunning && html`<div class="card soft" style="margin-bottom:16px"><div class="row"><span class="pill run">in corso</span><b>La tua AI sta scrivendo la strategia</b></div><p class="hint" style="margin-top:6px">Legge knowledge base, problemi del target, voce e post pubblicati. Può volerci qualche minuto: se non hai toccato la strategia, la applico da sola.</p></div>`}
+    ${ss?.draft && !aiRunning && html`<div class="card" style="margin-bottom:16px;border:1.5px solid var(--accent)">
+      <h3>La tua AI ha scritto una nuova strategia</h3>
+      <p class="hint" style="margin-top:6px">${ss.untouched ? "Ha letto la tua knowledge base, i problemi del target, la voce e i post. Guardala e usala al posto della partenza veloce." : "Non l'ho applicata perché la tua l'hai modificata a mano. Guardala e decidi."}</p>
+      <div class="row" style="margin-top:12px"><button class="btn primary" onClick=${apply}>Usa questa</button><button class="btn ghost" onClick=${() => setShowDraft(!showDraft)}>${showDraft ? "Nascondi" : "Guardala"}</button><button class="btn ghost" onClick=${discard}>Tieni la mia</button></div>
+      ${showDraft && html`<pre class="log" style="margin-top:12px;white-space:pre-wrap;max-height:420px">${ss.draft_text}</pre>`}
     </div>`}
+    ${ss?.template && !aiRunning && html`<div class="card" style="margin-bottom:16px;border:1.5px solid var(--accent)">
+      <h3>La strategia è ancora il modello vuoto</h3>
+      <p class="hint" style="margin-top:6px">Falla scrivere alla tua AI: legge la tua knowledge base, quello che hai messo nell'onboarding e i tuoi post. Oppure scrivila tu qui sotto.</p>
+      <div class="row" style="margin-top:12px"><button class="btn primary" onClick=${writeWithAI}>✦ Scrivila con la tua AI</button><button class="btn ghost" onClick=${quick}>Partenza veloce dai dati dell'onboarding</button></div>
+    </div>`}
+    ${job.run && !job.busy && job.run.status !== "ok" && html`<${JobBox} job=${job} label="Strategia dalla tua AI" />`}
     <div class="card stack">
       <div class="tabs">${FILES.map(([n, l]) => html`<button class=${"tab " + (f === n ? "on" : "")} onClick=${() => setF(n)}>${l}</button>`)}</div>
       <textarea style="min-height:460px" value=${txt} onInput=${(e) => setTxt(e.target.value)}></textarea>
-      <div class="row"><button class="btn primary" onClick=${async () => { await put(`/api/data/${f}`, { content: txt }); setSaved("Salvato"); setTpl(false); }}>Salva</button>${f === "strategy.md" && !tpl && html`<button class="btn ghost" onClick=${() => gen(true)}>Rigenera dall'onboarding</button>`}<span class="hint">${saved}</span></div>
+      <div class="row"><button class="btn primary" onClick=${async () => { await put(`/api/data/${f}`, { content: txt }); setSaved("Salvato"); load(); }}>Salva</button>${f === "strategy.md" && !ss?.template && html`<button class="btn ghost" disabled=${aiRunning} onClick=${writeWithAI}>✦ Riscrivila con la tua AI</button>`}<span class="hint">${saved}</span></div>
     </div>
   </div>`;
 }

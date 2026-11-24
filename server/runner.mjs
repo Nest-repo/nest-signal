@@ -5,6 +5,7 @@ import { PKG, DATA, RUNS, BROWSER_PROFILE, loadConfig, loadState, saveState } fr
 import { MODULES, SETUP_JOBS } from "./modules.mjs";
 import { launch } from "./adapters.mjs";
 import { checks, blockers, NEEDS } from "./health.mjs";
+import { applyDraft } from "./strategy.mjs";
 
 const queue = [];
 let current = null;
@@ -84,6 +85,7 @@ async function next() {
         if (st.esito?.ts >= startedAt) esito = st.esito;
       } catch {}
     }
+    if (current.kind === "setup" && current.target === "draft-strategy" && code === 0) { try { applyDraft(); } catch {} }
     const status = code !== 0 ? "errore" : esito?.livello === "bloccato" ? "bloccato" : esito?.livello === "parziale" ? "parziale" : "ok";
     update(current.id, { status, esito, missing: esito?.saltato || [], exit_code: code, ended_at: new Date().toISOString(), summary: out.trim().split("\n").slice(-6).join("\n").slice(0, 600) });
     current = null;

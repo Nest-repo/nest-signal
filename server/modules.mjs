@@ -13,6 +13,7 @@ export const SETUP_JOBS = {
   "test-ai": { name: "Prova dell'AI", file: null },
   "check-connections": { name: "Controllo connessioni", file: "setup/check-connections.md" },
   "draft-icp": { name: "Proposta ICP e target", file: "setup/draft-icp.md" },
+  "draft-strategy": { name: "Strategia editoriale", file: "setup/draft-strategy.md" },
   "draft-voice": { name: "Modello comunicativo dai tuoi post", file: "setup/draft-voice.md" },
   "design-template": { name: "Template delle creatività", file: "setup/design-template.md" },
   "prefill-profilo": { name: "Profilo dalla knowledge base", file: "setup/prefill.md", page: "profilo" },
