@@ -42,6 +42,8 @@ Un pannello locale (stile [Paperclip](https://github.com/paperclipai/paperclip))
 
 ## Installazione
 
+Il modo più semplice: copia il prompt di [`INSTALLA.md`](INSTALLA.md) nella tua AI da terminale e lascia fare a lei. A mano:
+
 ```bash
 git clone https://github.com/Nest-repo/nest-signal.git
 cd nest-signal
