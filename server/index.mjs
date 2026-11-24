@@ -9,7 +9,7 @@ import { ADAPTERS, detect, mcpServers } from "./adapters.mjs";
 import { enqueue, runs, runLog, recover } from "./runner.mjs";
 import { reschedule, nextRuns } from "./scheduler.mjs";
 
-const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".json": "application/json" };
+const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".json": "application/json" };
 const VENDOR = {
   "preact.mjs": "node_modules/preact/dist/preact.module.js",
   "hooks.mjs": "node_modules/preact/hooks/dist/hooks.module.js",
@@ -69,6 +69,24 @@ const routes = {
     fs.appendFileSync(path.join(DATA, "feed.jsonl"), JSON.stringify({ ts: new Date().toISOString(), modulo: "daily-question", tipo: "risposta", titolo: a.slice(0, 90) }) + "\n");
     return { ok: true };
   },
+  "GET /api/references": async () => {
+    const dir = path.join(DATA, "creative", "references");
+    return fs.readdirSync(dir).filter((f) => !f.startsWith(".")).map((f) => ({ name: f, path: path.join(dir, f), size: fs.statSync(path.join(dir, f)).size }));
+  },
+  "POST /api/references": async (b) => {
+    const m = /^data:([a-z]+\/[a-z0-9.+-]+);base64,(.+)$/.exec(b.dataUrl || "");
+    const ok = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/svg+xml": "svg", "application/pdf": "pdf" };
+    if (!m || !ok[m[1]]) throw new Error("formato non ammesso (png, jpg, webp, svg, pdf)");
+    const base = (b.name || "reference").toLowerCase().replace(/\.[a-z0-9]+$/, "").replace(/[^a-z0-9-]+/g, "-").slice(0, 40) || "reference";
+    const file = path.join(DATA, "creative", "references", `${Date.now().toString(36)}-${base}.${ok[m[1]]}`);
+    fs.writeFileSync(file, Buffer.from(m[2], "base64"));
+    return { ok: true, name: path.basename(file) };
+  },
+  "POST /api/references/delete": async (b) => {
+    const f = path.join(DATA, "creative", "references", path.basename(b.name || ""));
+    if (fs.existsSync(f)) fs.unlinkSync(f);
+    return { ok: true };
+  },
   "POST /api/browser-login": async () => {
     const p = spawn(process.execPath, [path.join(PKG, "scripts/browser-login.mjs")], { detached: true, stdio: "ignore" });
     p.unref();
@@ -113,7 +131,8 @@ const server = http.createServer(async (req, res) => {
     }
     if (url.pathname === "/creative-img") {
       const p = path.resolve(url.searchParams.get("p") || "");
-      if (!p.startsWith(path.join(DATA, "creative") + path.sep) || !p.endsWith(".png")) return send(res, 403, { error: "no" });
+      const inside = [path.join(DATA, "creative"), path.join(DATA, "drafts")].some((d) => p.startsWith(d + path.sep));
+      if (!inside || !/\.(png|jpe?g|webp|svg)$/i.test(p)) return send(res, 403, { error: "no" });
       return serveFile(res, p);
     }
     if (url.pathname === "/avatar") {

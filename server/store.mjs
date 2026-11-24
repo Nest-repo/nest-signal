@@ -23,6 +23,7 @@ export const DEFAULT_CONFIG = {
   hook_lab: { reference_creators: [], search_topics: [], audience_list_db: "" },
   comment_radar: { audience_list_db: "", max_per_run: 5 },
   brand: { bg: "#eee8de", ink: "#171717", accent: "#ff4700" },
+  creative: { figma_url: "", notes: "", feedback: [], approved: false },
   content: { days: ["lun", "mar", "mer", "gio"], max_proposals_per_run: 2, experiment_ratio: 0.25, inputs: { slack_ideas_channel: "" } },
   performance: { min_impressions: 300, conversion_weights: { followers: 3, profile_visits: 1, comments: 2, leads: 25 } },
   modules: {},
@@ -31,7 +32,7 @@ export const DEFAULT_CONFIG = {
 };
 
 function ensureDirs() {
-  for (const d of [HOME, DATA, RUNS, path.join(DATA, "state"), path.join(DATA, "drafts")]) fs.mkdirSync(d, { recursive: true });
+  for (const d of [HOME, DATA, RUNS, path.join(DATA, "state"), path.join(DATA, "drafts"), path.join(DATA, "creative", "references")]) fs.mkdirSync(d, { recursive: true });
   // file di conoscenza: si copiano dai template solo se mancano
   const tdir = path.join(PKG, "templates");
   for (const f of fs.readdirSync(tdir)) {

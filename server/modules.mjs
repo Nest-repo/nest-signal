@@ -15,6 +15,7 @@ export const SETUP_JOBS = {
   "draft-icp": { name: "Proposta ICP e target", file: "setup/draft-icp.md" },
   "draft-voice": { name: "Modello comunicativo dai tuoi post", file: "setup/draft-voice.md" },
   "notion-setup": { name: "Creazione Piano Editoriale", file: "setup/notion-setup.md" },
+  "design-template": { name: "Template delle creatività", file: "setup/design-template.md" },
 };
 
 export function moduleSettings(cfg) {

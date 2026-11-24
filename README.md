@@ -7,7 +7,7 @@ Costruito da [Nest](https://usanest.it), growth partner per founder che vogliono
 ## Come funziona
 
 Un pannello locale (stile [Paperclip](https://github.com/paperclipai/paperclip)) con:
-- **onboarding guidato nel browser**: la tua AI → chi sei → connessioni (Notion, browser, Slack, dove registri le call) → ICP e target (anche con proposta dell'AI) → modello comunicativo (l'AI legge i tuoi post) → Piano Editoriale → moduli e orari;
+- **onboarding guidato nel browser**: la tua AI → chi sei → connessioni (Notion, browser, Slack, dove registri le call) → ICP e target (anche con proposta dell'AI) → modello comunicativo (l'AI legge i tuoi post) → **creatività** (carichi le tue reference o un file Figma e l'AI costruisce il **tuo** template: colori, font, cornice) → Piano Editoriale → moduli e orari;
 - **scheduler interno**: i moduli partono ai loro orari finché il pannello è acceso; pausa, "esegui ora" e log di ogni giro;
 - **la tua AI fa il lavoro**: Claude Code, OpenAI Codex CLI, Gemini CLI o qualsiasi comando che accetta un prompt (adapter).
 
@@ -22,7 +22,7 @@ Un pannello locale (stile [Paperclip](https://github.com/paperclipai/paperclip))
 | Modulo | Default | Cosa fa |
 |---|---|---|
 | Content engine | lun-ven 17:00 | 2-3 bozze complete nella tua voce, sui pain veri, ripetendo ciò che converte |
-| Creatività | lun-ven 17:40 | immagine per ogni bozza: infografica visuale con i tuoi colori, nome e foto |
+| Creatività | lun-ven 17:40 | immagine per ogni bozza col **tuo** template (dalle tue reference): infografica visuale, non testo |
 | Domanda del giorno | lun-ven 08:15 | una domanda: rispondi dal pannello, diventa materiale vero |
 | Voce | lun 09:00 | aggiorna il tuo modello di scrittura |
 | Performance loop | lun e gio 08:40 | follower, visite profilo, commenti e lead per post → cosa converte |
@@ -75,7 +75,7 @@ Tutto in `~/.nest-signal/` (cambia con `NEST_SIGNAL_HOME`): `config.json`, `data
 | `modules/` | istruzioni dei moduli (`_common.md` + uno per modulo) |
 | `setup/` | lavori dell'onboarding (proposta ICP, modello comunicativo, Notion, controllo connessioni) |
 | `templates/` | file di partenza dei dati |
-| `creative/` | generatore delle creatività (cornice fissa + 6 infografiche) |
+| `creative/` | motore delle infografiche (6 tipi) + contratto del template del cliente (`TEMPLATE.md`) |
 
 ## Ti serve una mano?
 

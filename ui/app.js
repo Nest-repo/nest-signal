@@ -70,7 +70,7 @@ function NestCTA({ cfg, title, text, cta }) {
 }
 
 // ---------- ONBOARDING ----------
-const STEPS = ["Benvenuto", "La tua AI", "Chi sei", "Connessioni", "ICP e target", "Come comunichi", "Piano Editoriale", "Moduli e orari", "Si parte"];
+const STEPS = ["Benvenuto", "La tua AI", "Chi sei", "Connessioni", "ICP e target", "Come comunichi", "Creatività", "Piano Editoriale", "Moduli e orari", "Si parte"];
 
 function Onboarding({ st, reload }) {
   const cfg = st.config;
@@ -84,7 +84,7 @@ function Onboarding({ st, reload }) {
     await post("/api/config", { ...(patch || draft), onboarding: { step: n, done: false } });
     await reload(); setStep(n); scrollTo(0, 0);
   };
-  const Body = [StepWelcome, StepAI, StepProfile, StepConnections, StepICP, StepVoice, StepNotion, StepModules, StepFinish][step];
+  const Body = [StepWelcome, StepAI, StepProfile, StepConnections, StepICP, StepVoice, StepCreative, StepNotion, StepModules, StepFinish][step];
   return html`<div class="ob">
     <aside class="ob-rail">
       <div class="brand">Nest <span>Signal</span></div>
@@ -271,11 +271,64 @@ function StepVoice({ draft, set, next }) {
   </div>`;
 }
 
+const img = (p) => "/creative-img?p=" + encodeURIComponent(p);
+
+function StepCreative({ cfg, draft, set, next }) {
+  const c = draft.creative; const job = useJob();
+  const [refs, setRefs] = useState([]); const [res, setRes] = useState(null); const [fb, setFb] = useState(""); const [up, setUp] = useState(false);
+  const loadRefs = () => api("/api/references").then(setRefs);
+  useEffect(() => { loadRefs(); api("/api/drafts/design-template").then(setRes); }, []);
+  const upload = async (files) => {
+    setUp(true);
+    for (const f of files) {
+      if (f.size > 5.5e6) { alert(`${f.name}: massimo 5 MB per file`); continue; }
+      const dataUrl = await new Promise((ok) => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(f); });
+      await post("/api/references", { name: f.name, dataUrl }).catch((e) => alert(`${f.name}: ${e.message}`));
+    }
+    setUp(false); loadRefs();
+  };
+  const build = async (feedback) => {
+    const creative = { ...c, feedback: feedback ? [...(c.feedback || []), `${new Date().toLocaleDateString("it-IT")}: ${feedback}`] : c.feedback || [], approved: false };
+    set("creative", creative); await post("/api/config", { owner: draft.owner, creative }); setRes(null); setFb("");
+    job.start("setup", "design-template", async () => setRes(await api("/api/drafts/design-template")));
+  };
+  const enough = refs.length > 0 || c.figma_url;
+  return html`<div class="stack">
+    <div class="kicker">Passo 7 · Creatività</div>
+    <h2>Le tue creatività, non quelle di un kit</h2>
+    <p class="hint">Ogni post esce con un'immagine. Per farla tua, partiamo dalle tue reference: la tua brand identity, grafiche che hai già, post di altri che ti piacciono, oppure un file Figma. L'AI ne ricava colori, font e stile e costruisce il tuo template.</p>
+    <div class="card">
+      <h3>Carica le reference</h3>
+      <p class="hint">Immagini o PDF (max 5 MB l'uno): logo, brand book, 3-6 grafiche o post che ti rappresentano.</p>
+      <label class="choice" style="justify-content:center;border-style:dashed;padding:26px"><input type="file" multiple accept="image/png,image/jpeg,image/webp,image/svg+xml,application/pdf" style="display:none" onChange=${(e) => upload([...e.target.files])} /><b>${up ? "Carico…" : "Scegli i file"}</b></label>
+      ${refs.length > 0 && html`<div class="row" style="margin-top:12px">${refs.map((r) => html`<div style="position:relative">
+        ${/\.(png|jpe?g|webp|svg)$/i.test(r.name) ? html`<img src=${img(r.path)} style="width:96px;height:96px;object-fit:cover;border-radius:10px;border:1px solid var(--line)" />` : html`<div class="card soft" style="width:96px;height:96px;padding:8px;font-size:12px">${r.name.split(".").pop().toUpperCase()}</div>`}
+        <button class="btn small ghost" style="position:absolute;top:-8px;right:-8px;padding:2px 8px;background:#fff" onClick=${() => post("/api/references/delete", { name: r.name }).then(loadRefs)} aria-label="togli">×</button></div>`)}</div>`}
+      <label>Oppure un file Figma (link al file o al frame)</label><input placeholder="https://www.figma.com/design/…" value=${c.figma_url} onInput=${(e) => set("creative.figma_url", e.target.value)} />
+      <p class="hint">Per leggere Figma la tua AI deve avere il connettore Figma. In alternativa esporta i frame in PNG e caricali qui sopra.</p>
+      <label>Cosa ti piace, cosa evitare</label><input placeholder="es. tanto spazio bianco, niente gradienti, il blu del logo solo come accento" value=${c.notes} onInput=${(e) => set("creative.notes", e.target.value)} />
+      <div class="row" style="margin-top:14px"><button class="btn accent" disabled=${!enough || job.busy} onClick=${() => build()}>✦ Crea il mio template</button>${!enough && html`<span class="hint">Carica almeno una reference o un link Figma.</span>`}</div>
+    </div>
+    <${JobBox} job=${job} label="Template delle creatività" />
+    ${res && html`<div class="card stack">
+      <div class="kicker">Il tuo stile</div><h3>${res.stile}</h3><p class="hint">${res.sintesi}</p>
+      ${res.scelte?.length > 0 && html`<ul class="hint">${res.scelte.map((s) => html`<li>${s}</li>`)}</ul>`}
+      <div class="row" style="align-items:flex-start">${(res.anteprime || []).map((p) => html`<a href=${img(p)} target="_blank"><img src=${img(p) + "&t=" + Date.now()} style="width:230px;border-radius:12px;border:1px solid var(--line)" /></a>`)}</div>
+      ${res.dubbi?.length > 0 && html`<p class="hint">Da chiarire: ${res.dubbi.join(" · ")}</p>`}
+      <label>Non ti convince? Dimmi cosa cambiare</label><input placeholder="es. titolo più grande, meno arancio, firma in alto" value=${fb} onInput=${(e) => setFb(e.target.value)} />
+      <div class="row"><button class="btn accent" onClick=${() => { set("creative.approved", true); next({ creative: { ...c, approved: true } }); }}>Mi piace, usalo →</button>
+        <button class="btn ghost" disabled=${!fb.trim() || job.busy} onClick=${() => build(fb.trim())}>Rifallo con questa nota</button></div>
+    </div>`}
+    <${NestCTA} cfg=${cfg} title="Vuoi un template disegnato su misura?" text="Il designer di Nest può costruire con te un sistema visivo per i tuoi contenuti, che poi Nest Signal usa in automatico." cta="Parliamone" />
+    <div class="row" style="margin-top:12px"><button class="btn ghost small" onClick=${() => next({ creative: c })}>Salta per ora (le creatività restano spente)</button></div>
+  </div>`;
+}
+
 function StepNotion({ draft, set, setDraft, next }) {
   const n = draft.notion; const job = useJob();
   const create = async () => { await post("/api/config", { notion: n }); job.start("setup", "notion-setup", async () => { const s = await api("/api/status"); setDraft({ ...draft, notion: s.config.notion }); }); };
   return html`<div class="stack">
-    <div class="kicker">Passo 7 · Notion</div>
+    <div class="kicker">Passo 8 · Notion</div>
     <h2>Il Piano Editoriale</h2>
     <p class="hint">È dove arrivano le bozze con la loro immagine, e dove approvi. Se ne hai già uno lo adattiamo aggiungendo solo le colonne che mancano.</p>
     <label>Database esistente (facoltativo)</label><input placeholder="link al database Notion, oppure lascia vuoto per crearlo" value=${n.editorial_db} onInput=${(e) => set("notion.editorial_db", e.target.value)} />
@@ -292,7 +345,7 @@ function StepModules({ st, draft, set, next }) {
   const get = (id, k, d) => draft.modules?.[id]?.[k] ?? d;
   const setM = (id, k, v) => set("modules", { ...(draft.modules || {}), [id]: { ...(draft.modules?.[id] || {}), [k]: v } });
   return html`<div class="stack">
-    <div class="kicker">Passo 8 · Moduli</div>
+    <div class="kicker">Passo 9 · Moduli</div>
     <h2>Cosa gira, e quando</h2>
     <p class="hint">Orari in formato cron (minuto ora giorno mese giorno-settimana). Girano finché il pannello resta acceso.</p>
     <div class="cards">${mods.map((m) => { const on = get(m.id, "enabled", m.enabled); return html`<div class="card module">
@@ -442,7 +495,8 @@ function Settings({ st, reload }) {
       <div><label>Colore d'accento (creatività)</label><input type="color" value=${c.brand.accent} onInput=${(e) => setC({ ...c, brand: { ...c.brand, accent: e.target.value } })} style="height:44px" /></div>
       <div><label>Sfondo (creatività)</label><input type="color" value=${c.brand.bg} onInput=${(e) => setC({ ...c, brand: { ...c.brand, bg: e.target.value } })} style="height:44px" /></div>
     </div><div class="row" style="margin-top:16px"><button class="btn" onClick=${save}>Salva</button>
-      <button class="btn ghost" onClick=${async () => { await post("/api/config", { onboarding: { done: false, step: 1 } }); await reload(); location.hash = "#/onboarding"; }}>Rifai l'onboarding</button></div></div>
+      <button class="btn ghost" onClick=${async () => { await post("/api/config", { onboarding: { done: false, step: 1 } }); await reload(); location.hash = "#/onboarding"; }}>Rifai l'onboarding</button>
+      <button class="btn ghost" onClick=${async () => { await post("/api/config", { onboarding: { done: false, step: 6 } }); await reload(); location.hash = "#/onboarding"; }}>Rifai il template delle creatività</button></div></div>
     <p class="hint">Dati e configurazione: <span class="mono">${st.home}</span></p>
   </div>`;
 }
@@ -451,9 +505,9 @@ function Settings({ st, reload }) {
 function App() {
   const hash = useHash();
   const [st, setSt] = useState(null); const [err, setErr] = useState("");
-  const reload = () => api("/api/status").then(setSt).catch((e) => setErr(e.message));
+  const reload = () => api("/api/status").then((s) => { setErr(""); setSt(s); }).catch((e) => setErr(e.message));
   useEffect(() => { reload(); const t = setInterval(reload, 15000); return () => clearInterval(t); }, []);
-  if (err) return html`<div class="main"><h2>Il pannello non risponde</h2><p class="hint">${err}</p></div>`;
+  if (err && !st) return html`<div class="main"><h2>Il pannello non risponde</h2><p class="hint">${err}. Riprovo da solo ogni 15 secondi: controlla che nest-signal sia acceso.</p></div>`;
   if (!st) return html`<div class="main"><p class="hint">Avvio…</p></div>`;
   if (!st.config.onboarding.done || hash.startsWith("#/onboarding")) return html`<${Onboarding} st=${st} reload=${reload} />`;
   const Page = { "#/oggi": Today, "#/moduli": Modules, "#/strategia": Strategy, "#/risultati": Results, "#/attivita": Activity, "#/impostazioni": Settings }[hash.split("?")[0]] || Today;
