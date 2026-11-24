@@ -87,11 +87,11 @@ function Onboarding({ st, reload }) {
   const Body = [StepWelcome, StepAI, StepProfile, StepConnections, StepICP, StepVoice, StepCreative, StepNotion, StepModules, StepFinish][step];
   return html`<div class="ob">
     <aside class="ob-rail">
-      <div class="brand"><img src="/brand/nest-logo.svg" alt="" /><div>Nest Signal<small>by Nest</small></div></div>
+      <div class="brand"><img src="/brand/nest-logo.svg" alt="" />Nest Signal <small>by Nest</small></div>
       ${STEPS.map((s, i) => html`<div class=${"step " + (i < step ? "done" : i === step ? "on" : "")} onClick=${() => i < step && setStep(i)} style=${i < step ? "cursor:pointer" : ""}>
         <span class="dot">${i < step ? "✓" : i + 1}</span>${s}</div>`)}
       <div style="flex:1"></div>
-      <p class="hint" style="color:#a39d92">Tutto resta sul tuo computer, in <span class="mono">${st.home}</span>.</p>
+      <p class="hint">Tutto resta sul tuo computer, in <span class="mono">${st.home}</span>.</p>
     </aside>
     <main class="ob-main">
       <${Body} st=${st} cfg=${cfg} draft=${draft} set=${set} setDraft=${setDraft} reload=${reload} next=${(patch) => go(step + 1, patch)} />
@@ -385,55 +385,91 @@ function StepFinish({ st, cfg, reload }) {
   </div>`;
 }
 
-// ---------- PANNELLO ----------
-const ICON = {
-  oggi: html`<svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10"/></svg>`,
-  moduli: html`<svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>`,
-  strategia: html`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg>`,
-  risultati: html`<svg viewBox="0 0 24 24"><path d="M4 4v16h16"/><path d="m7.5 14 3.5-4 3 3 4.5-6"/></svg>`,
-  attivita: html`<svg viewBox="0 0 24 24"><path d="M4 12h3.5l2.5-6 4 12 2.5-6H20"/></svg>`,
-  impostazioni: html`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/></svg>`,
+// ---------- PANNELLO (layout Comperio: top bar + sidebar, testata a blocco, card ariose, liste a righe) ----------
+const P = {
+  oggi: '<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10"/>',
+  moduli: '<rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/>',
+  strategia: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/>',
+  risultati: '<path d="M4 4v16h16"/><path d="m7.5 14 3.5-4 3 3 4.5-6"/>',
+  attivita: '<path d="M4 12h3.5l2.5-6 4 12 2.5-6H20"/>',
+  impostazioni: '<circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/>',
+  orologio: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  calendario: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+  play: '<path d="M7 5v14l11-7z"/>',
+  log: '<path d="M6 3.5h8l4 4v13H6z"/><path d="M14 3.5v4h4M9 12h6M9 16h6"/>',
+  browser: '<rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M3 9h18"/>',
+  freccia: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  chat: '<path d="M20.5 12a8.5 8.5 0 0 1-12.3 7.6L3.5 21l1.4-4.6A8.5 8.5 0 1 1 20.5 12z"/>',
 };
+const I = (n) => html`<svg class="i" viewBox="0 0 24 24" dangerouslySetInnerHTML=${{ __html: P[n] || "" }}></svg>`;
 const NAV = [["#/oggi", "Oggi", "oggi"], ["#/moduli", "Moduli", "moduli"], ["#/strategia", "Strategia", "strategia"], ["#/risultati", "Risultati", "risultati"], ["#/attivita", "Attività", "attivita"], ["#/impostazioni", "Impostazioni", "impostazioni"]];
+const initials = (n) => (n || "?").split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 
 function Shell({ st, hash, children }) {
-  return html`<div class="shell">
-    <aside class="side">
-      <div class="brand"><img src="/brand/nest-logo.svg" alt="" /><div>Nest Signal<small>by Nest</small></div></div>
-      ${NAV.map(([href, l, ic]) => html`<a class=${"nav " + (hash.startsWith(href) ? "on" : "")} href=${href}>${ICON[ic]}${l}</a>`)}
-      <div class="grow"></div>
-      ${st.running.length > 0 && html`<div class="card" style="padding:14px;margin-bottom:12px"><span class="pill run">al lavoro</span><p class="hint" style="margin:6px 0 0">${st.running.map((r) => r.target).join(", ")}</p></div>`}
-      <div class="help"><b>Ti serve una mano?</b><p>Nest imposta il sistema con te: call registrate, ICP, CRM.</p><a class="btn small accent" href=${st.config.nest.booking_url} target="_blank" rel="noopener">Prenota una call</a></div>
-    </aside>
-    <main class="main">${children}</main>
+  const o = st.config.owner;
+  return html`<div class="app">
+    <header class="topnav">
+      <div class="brand"><img src="/brand/nest-logo.svg" alt="" />Nest Signal <small>by Nest</small></div>
+      <div class="user">
+        ${st.running.length > 0 && html`<span class="pill run">al lavoro: ${st.running.map((r) => r.target).join(", ")}</span>`}
+        <span class="av">${o.avatar ? html`<img src="/avatar" alt="" />` : initials(o.name)}</span>
+        <div class="who"><b>${o.name || "—"}</b><span>${o.role || o.company || ""}</span></div>
+      </div>
+    </header>
+    <div class="shell">
+      <aside class="side">
+        ${NAV.map(([href, l, ic]) => html`<a class=${"nav " + (hash.startsWith(href) ? "on" : "")} href=${href}>${I(ic)}${l}</a>`)}
+        <div class="grow"></div>
+        <div class="help"><b>Ti serve una mano?</b><p>Nest imposta il sistema con te: call registrate, ICP, CRM.</p>
+          <a class="btn small dark" href=${st.config.nest.booking_url} target="_blank" rel="noopener">Prenota una call</a></div>
+      </aside>
+      <main class="main">${children}</main>
+    </div>
   </div>`;
+}
+
+function Hero({ kicker, title, text, children }) {
+  return html`<section class="hero"><div><div class="kicker">${kicker}</div><h1>${title}</h1>${text && html`<p>${text}</p>`}</div>${children && html`<div class="row">${children}</div>`}</section>`;
 }
 
 function Question() {
   const [q, setQ] = useState(undefined); const [a, setA] = useState(""); const [done, setDone] = useState(false);
   useEffect(() => { api("/api/question").then(setQ); }, []);
-  if (!q?.domanda) return html`<div class="card"><h3>Domanda del giorno</h3><p class="hint">Arriva alla prossima esecuzione del modulo.</p></div>`;
-  return html`<div class="card"><div class="kicker">Domanda del giorno</div><h3 style="margin-top:8px">${q.domanda}</h3>
-    ${done ? html`<p class="hint">Grazie: diventa materiale per i prossimi post.</p>` : html`<textarea style="font-family:var(--sans);font-size:15px;min-height:90px" placeholder="Due righe, come le diresti a voce" value=${a} onInput=${(e) => setA(e.target.value)}></textarea>
-    <div class="row" style="margin-top:10px"><button class="btn small primary" disabled=${!a.trim()} onClick=${() => post("/api/answer", { domanda: q.domanda, risposta: a }).then(() => setDone(true))}>Rispondi</button></div>`}</div>`;
+  return html`<div class="card">
+    <h3>${I("chat")} Domanda del giorno</h3>
+    ${!q?.domanda ? html`<p class="hint">Arriva alla prossima esecuzione del modulo.</p>` : html`
+      <p style="font-size:17px;margin-top:12px">${q.domanda}</p>
+      ${done ? html`<p class="hint" style="margin-top:10px">Grazie: diventa materiale per i prossimi post.</p>` : html`
+        <textarea style="font-family:var(--sans);font-size:15px;min-height:96px;margin-top:12px" placeholder="Due righe, come le diresti a voce" value=${a} onInput=${(e) => setA(e.target.value)}></textarea>
+        <div class="row" style="margin-top:12px"><button class="btn primary small" disabled=${!a.trim()} onClick=${() => post("/api/answer", { domanda: q.domanda, risposta: a }).then(() => setDone(true))}>Rispondi</button></div>`}`}
+  </div>`;
 }
 
 function Today({ st }) {
   const [feed, setFeed] = useState(null);
   useEffect(() => { api("/api/feed").then(setFeed); }, []);
-  const next = [...st.modules].filter((m) => m.enabled && m.next_run).sort((a, b) => a.next_run.localeCompare(b.next_run)).slice(0, 5);
-  return html`<div class="stack">
-    <div class="kicker">Oggi</div>
-    <h1>Ciao ${st.config.owner.name.split(" ")[0] || ""}.<br/><em>Ecco cosa c'è da guardare.</em></h1>
-    <div class="cards">
-      <div class="card"><h3>Prossimi giri</h3>${next.length ? next.map((m) => html`<div class="check"><span class="mono" style="min-width:150px">${when(m.next_run)}</span>${m.name}</div>`) : html`<p class="hint">Nessun modulo attivo.</p>`}</div>
-      <${Question} />
+  const next = [...st.modules].filter((m) => m.enabled && m.next_run).sort((a, b) => a.next_run.localeCompare(b.next_run));
+  const first = st.config.owner.name.split(" ")[0] || "";
+  return html`<div>
+    <${Hero} kicker="Oggi" title=${html`Ciao ${first}, <em>ecco cosa c'è da guardare.</em>`} text="Le bozze arrivano nel tuo Piano Editoriale con la loro immagine: tu approvi e pubblichi.">
+      ${next[0] && html`<span class="chip">${I("orologio")} prossimo: ${next[0].name} · ${when(next[0].next_run)}</span>`}
+      ${st.config.notion.editorial_db && html`<a class="btn primary" href=${st.config.notion.editorial_db.startsWith("http") ? st.config.notion.editorial_db : "https://www.notion.so"} target="_blank" rel="noopener">Apri il Piano Editoriale ${I("freccia")}</a>`}
+    <//>
+    <div class="cols">
+      <div class="card">
+        <h2>Cosa ha fatto il sistema</h2>
+        ${!feed ? html`<p class="hint">Carico…</p>` : !feed.length ? html`<p class="hint">Ancora niente: il primo giro del content engine scrive qui le bozze nuove.</p>` : html`<div>
+          ${feed.map((f) => html`<div class="feed-item">
+            <div><b style="font-weight:500">${f.titolo || f.title}</b><div class="row" style="margin-top:6px"><span class="pill">${f.tipo || f.type}</span><span class="when">${f.modulo || f.module} · ${when(f.ts)}</span></div>
+              ${f.immagine && html`<a href=${"/creative-img?p=" + encodeURIComponent(f.immagine)} target="_blank"><img src=${"/creative-img?p=" + encodeURIComponent(f.immagine)} style="width:150px;border-radius:10px;margin-top:10px;border:1px solid var(--line)" /></a>`}</div>
+            ${f.link && html`<a class="btn small ghost" href=${f.link} target="_blank" rel="noopener">Apri</a>`}</div>`)}</div>`}
+      </div>
+      <div class="stack" style="margin:0">
+        <${Question} />
+        <div class="card"><h3>${I("calendario")} Prossimi giri</h3>
+          ${next.length ? html`<div>${next.slice(0, 6).map((m) => html`<div class="check"><span style="flex:1">${m.name}</span><span class="hint">${when(m.next_run)}</span></div>`)}</div>` : html`<p class="hint">Nessun modulo attivo.</p>`}</div>
+      </div>
     </div>
-    <div class="card soft"><h3>Da approvare</h3><p class="hint">Le bozze e le loro immagini sono nel tuo Piano Editoriale: aprile, correggi, metti "Da pubblicare". Le metriche le aggiorna il Performance loop.</p></div>
-    <h2 style="margin-top:20px">Cosa ha fatto il sistema</h2>
-    ${!feed ? html`<p class="hint">Carico…</p>` : !feed.length ? html`<p class="hint">Ancora niente: il primo giro del content engine scrive qui le bozze nuove.</p>` :
-      feed.map((f) => html`<div class="feed-item"><span class="mono">${when(f.ts)}</span><div><b>${f.titolo || f.title}</b><div class="hint">${f.modulo || f.module} · ${f.tipo || f.type}</div>
-        ${f.immagine && html`<a href=${"/creative-img?p=" + encodeURIComponent(f.immagine)} target="_blank"><img src=${"/creative-img?p=" + encodeURIComponent(f.immagine)} style="width:160px;border-radius:10px;margin-top:8px" /></a>`}</div>${f.link && html`<a href=${f.link} target="_blank" rel="noopener">apri →</a>`}</div>`)}
   </div>`;
 }
 
@@ -441,17 +477,28 @@ function Modules({ st, reload }) {
   const [logFor, setLogFor] = useState(null); const [log, setLog] = useState("");
   const save = async (id, patch) => { await post("/api/config", { modules: { [id]: patch } }); reload(); };
   const showLog = async (r) => { setLogFor(r); setLog((await api(`/api/runs/${r.id}/log`)).log); };
-  return html`<div class="stack">
-    <div class="topbar"><div><div class="kicker">Moduli</div><h1>Le routine</h1><p class="hint">Ogni modulo gira al suo orario finché il pannello è acceso. Puoi metterlo in pausa o lanciarlo subito.</p></div></div>
-    <div class="cards">${st.modules.map((m) => html`<div class="card module stack">
-      <h3>${m.name}<button class=${"toggle " + (m.enabled ? "on" : "")} onClick=${() => save(m.id, { enabled: !m.enabled })} aria-label="attiva o metti in pausa"></button></h3>
-      <p class="hint" style="margin:0">${m.desc}</p>
-      <div class="row"><span class="mono">${cronHuman(m.cron)}</span>${m.enabled ? html`<span class="hint">prossimo: ${when(m.next_run)}</span>` : html`<span class="pill">in pausa</span>`}</div>
-      <div class="row">${m.last_run ? html`${pill(m.last_run.status)}<span class="hint">${when(m.last_run.ended_at || m.last_run.started_at)}</span><a href="#" onClick=${(e) => { e.preventDefault(); showLog(m.last_run); }}>log</a>` : html`<span class="hint">mai eseguito</span>`}</div>
-      <div class="row"><button class="btn small primary" onClick=${() => post("/api/run", { kind: "module", target: m.id }).then(reload)}>Esegui ora</button>
-        <input class="mono" style="width:170px;padding:6px 10px" value=${m.cron} onChange=${(e) => save(m.id, { cron: e.target.value })} title="orario cron" /></div>
+  const on = st.modules.filter((m) => m.enabled).length;
+  return html`<div>
+    <${Hero} kicker="Moduli" title="Le routine" text="Ogni modulo gira al suo orario finché il pannello è acceso. Puoi metterlo in pausa o lanciarlo subito.">
+      <span class="chip">${on} attivi su ${st.modules.length}</span>
+    <//>
+    ${logFor && html`<div class="card" style="margin-bottom:16px"><div class="row" style="justify-content:space-between"><h3>${I("log")} ${logFor.target} ${pill(logFor.status)}</h3><button class="btn small ghost" onClick=${() => setLogFor(null)}>Chiudi</button></div><pre class="log" style="margin-top:12px">${log || "(vuoto)"}</pre></div>`}
+    <div class="rows">${st.modules.map((m) => html`<div class="item">
+      <div>
+        <div class="row"><span class="t">${m.name}</span>${!m.enabled && html`<span class="pill">in pausa</span>`}${m.browser && html`<span class="pill">${I("browser")} LinkedIn</span>`}</div>
+        <div class="d">${m.desc}</div>
+        <div class="chips">
+          <span class="chip">${I("orologio")} ${cronHuman(m.cron)}</span>
+          ${m.enabled && html`<span class="chip">${I("calendario")} prossimo ${when(m.next_run)}</span>`}
+          ${m.last_run ? html`<button class="chip" style="border:0" onClick=${() => showLog(m.last_run)}>${I("log")} ultimo: ${m.last_run.status} · ${when(m.last_run.ended_at || m.last_run.started_at)}</button>` : html`<span class="chip">${I("log")} mai eseguito</span>`}
+        </div>
+      </div>
+      <div class="act">
+        <input class="mono" style="width:150px;min-height:40px" value=${m.cron} onChange=${(e) => save(m.id, { cron: e.target.value })} title="orario (cron)" aria-label="orario" />
+        <button class="btn" onClick=${() => post("/api/run", { kind: "module", target: m.id }).then(reload)}>${I("play")} Esegui ora</button>
+        <button class=${"toggle " + (m.enabled ? "on" : "")} onClick=${() => save(m.id, { enabled: !m.enabled })} aria-label="attiva o metti in pausa"></button>
+      </div>
     </div>`)}</div>
-    ${logFor && html`<div class="card"><div class="row"><b>${logFor.target}</b>${pill(logFor.status)}<button class="btn small ghost" onClick=${() => setLogFor(null)}>chiudi</button></div><pre class="log">${log || "(vuoto)"}</pre></div>`}
   </div>`;
 }
 
@@ -459,53 +506,67 @@ const FILES = [["strategy.md", "Strategia"], ["pain-map.md", "Problemi del targe
 function Strategy() {
   const [f, setF] = useState(FILES[0][0]); const [txt, setTxt] = useState(""); const [saved, setSaved] = useState("");
   useEffect(() => { api(`/api/data/${f}`).then((d) => { setTxt(d.content); setSaved(""); }); }, [f]);
-  return html`<div class="stack">
-    <div class="topbar"><div><div class="kicker">Strategia</div><h1>Da dove pesca il sistema</h1></div></div>
-    <p class="hint">La strategia è l'unica fonte delle regole editoriali. I dati (cosa converte, hook validati) li aggiornano i moduli da soli.</p>
-    <div class="tabs">${FILES.map(([n, l]) => html`<button class=${"tab " + (f === n ? "on" : "")} onClick=${() => setF(n)}>${l}</button>`)}</div>
-    <textarea style="min-height:480px" value=${txt} onInput=${(e) => setTxt(e.target.value)}></textarea>
-    <div class="row"><button class="btn primary" onClick=${async () => { await put(`/api/data/${f}`, { content: txt }); setSaved("salvato"); }}>Salva</button><span class="hint">${saved}</span></div>
+  return html`<div>
+    <${Hero} kicker="Strategia" title="Da dove pesca il sistema" text="La strategia è l'unica fonte delle regole editoriali. I dati (cosa converte, hook validati) li aggiornano i moduli da soli." />
+    <div class="card stack">
+      <div class="tabs">${FILES.map(([n, l]) => html`<button class=${"tab " + (f === n ? "on" : "")} onClick=${() => setF(n)}>${l}</button>`)}</div>
+      <textarea style="min-height:460px" value=${txt} onInput=${(e) => setTxt(e.target.value)}></textarea>
+      <div class="row"><button class="btn primary" onClick=${async () => { await put(`/api/data/${f}`, { content: txt }); setSaved("Salvato"); }}>Salva</button><span class="hint">${saved}</span></div>
+    </div>
   </div>`;
 }
 
 function Results() {
   const [t, setT] = useState("performance-ledger.md"); const [txt, setTxt] = useState("");
   useEffect(() => { api(`/api/data/${t}`).then((d) => setTxt(d.content)); }, [t]);
-  return html`<div class="stack">
-    <div class="topbar"><div><div class="kicker">Risultati</div><h1>Cosa funziona davvero</h1><p class="hint">Si aggiorna da solo con il Performance loop e l’Hook Lab.</p></div></div>
-    <div class="tabs">${[["performance-ledger.md", "Cosa converte"], ["hook-library.md", "Hook validati"], ["hook-swipe.md", "Hook trovati fuori"]].map(([n, l]) => html`<button class=${"tab " + (t === n ? "on" : "")} onClick=${() => setT(n)}>${l}</button>`)}</div>
-    <div class="card md" dangerouslySetInnerHTML=${{ __html: marked.parse((txt || "").replace(/<!--[\s\S]*?-->/g, "")) }}></div>
+  return html`<div>
+    <${Hero} kicker="Risultati" title="Cosa funziona davvero" text="Si aggiorna da solo con il Performance loop (lun e gio) e l'Hook Lab (mar)." />
+    <div class="card stack">
+      <div class="tabs">${[["performance-ledger.md", "Cosa converte"], ["hook-library.md", "Hook validati"], ["hook-swipe.md", "Hook trovati fuori"]].map(([n, l]) => html`<button class=${"tab " + (t === n ? "on" : "")} onClick=${() => setT(n)}>${l}</button>`)}</div>
+      <div class="md" dangerouslySetInnerHTML=${{ __html: marked.parse((txt || "").replace(/<!--[\s\S]*?-->/g, "")) }}></div>
+    </div>
   </div>`;
 }
 
 function Activity() {
   const [list, setList] = useState([]); const [open, setOpen] = useState(null); const [log, setLog] = useState("");
   useEffect(() => { api("/api/runs").then(setList); }, []);
-  return html`<div class="stack">
-    <div class="topbar"><div><div class="kicker">Attività</div><h1>Ogni giro, con il suo log</h1></div></div>
-    <div class="card">${list.length ? list.map((r) => html`<div class="feed-item" style="grid-template-columns:150px 1fr auto">
-      <span class="mono">${when(r.started_at || r.queued_at)}</span><div><b>${r.target}</b><div class="hint">${r.kind === "setup" ? "onboarding" : "modulo"} · ${r.trigger}</div></div>
-      <div class="row">${pill(r.status)}<a href="#" onClick=${async (e) => { e.preventDefault(); setOpen(r); setLog((await api(`/api/runs/${r.id}/log`)).log); }}>log</a></div></div>`) : html`<p class="hint">Nessun giro ancora.</p>`}</div>
-    ${open && html`<div class="card"><b>${open.target}</b><pre class="log">${log || "(vuoto)"}</pre></div>`}
+  return html`<div>
+    <${Hero} kicker="Attività" title="Ogni giro, con il suo log" />
+    ${open && html`<div class="card" style="margin-bottom:16px"><div class="row" style="justify-content:space-between"><h3>${I("log")} ${open.target} ${pill(open.status)}</h3><button class="btn small ghost" onClick=${() => setOpen(null)}>Chiudi</button></div><pre class="log" style="margin-top:12px">${log || "(vuoto)"}</pre></div>`}
+    <div class="rows">${list.length ? list.map((r) => html`<div class="item">
+      <div><div class="row"><span class="t" style="font-size:16px">${r.target}</span>${pill(r.status)}</div>
+        <div class="chips"><span class="chip">${I("calendario")} ${when(r.started_at || r.queued_at)}</span><span class="chip">${r.kind === "setup" ? "onboarding" : "modulo"} · ${r.trigger}</span></div></div>
+      <div class="act"><button class="btn small ghost" onClick=${async () => { setOpen(r); setLog((await api(`/api/runs/${r.id}/log`)).log); scrollTo(0, 0); }}>${I("log")} Log</button></div>
+    </div>`) : html`<div class="card"><p class="hint">Nessun giro ancora.</p></div>`}</div>
   </div>`;
 }
 
 function Settings({ st, reload }) {
-  const [c, setC] = useState(st.config);
-  const save = async () => { await post("/api/config", { ai: c.ai, delivery: c.delivery, notion: c.notion, brand: c.brand }); reload(); };
-  return html`<div class="stack">
-    <div class="topbar"><div><div class="kicker">Impostazioni</div><h1>Motore e collegamenti</h1></div></div>
-    <div class="card"><div class="grid2">
-      <div><label>AI</label><select value=${c.ai.adapter} onChange=${(e) => setC({ ...c, ai: { ...c.ai, adapter: e.target.value } })}>${Object.entries(st.adapters).map(([id, a]) => html`<option value=${id}>${a.label}</option>`)}</select></div>
-      <div><label>Comando personalizzato</label><input value=${c.ai.custom_command} onInput=${(e) => setC({ ...c, ai: { ...c.ai, custom_command: e.target.value } })} /></div>
-      <div><label>Piano Editoriale (Notion)</label><input value=${c.notion.editorial_db} onInput=${(e) => setC({ ...c, notion: { ...c.notion, editorial_db: e.target.value } })} /></div>
-      <div><label>Canale Slack per i report</label><input value=${c.delivery.slack_channel} onInput=${(e) => setC({ ...c, delivery: { ...c.delivery, slack_channel: e.target.value } })} /></div>
-      <div><label>Colore d'accento (creatività)</label><input type="color" value=${c.brand.accent} onInput=${(e) => setC({ ...c, brand: { ...c.brand, accent: e.target.value } })} style="height:44px" /></div>
-      <div><label>Sfondo (creatività)</label><input type="color" value=${c.brand.bg} onInput=${(e) => setC({ ...c, brand: { ...c.brand, bg: e.target.value } })} style="height:44px" /></div>
-    </div><div class="row" style="margin-top:16px"><button class="btn primary" onClick=${save}>Salva</button>
-      <button class="btn ghost" onClick=${async () => { await post("/api/config", { onboarding: { done: false, step: 1 } }); await reload(); location.hash = "#/onboarding"; }}>Rifai l'onboarding</button>
-      <button class="btn ghost" onClick=${async () => { await post("/api/config", { onboarding: { done: false, step: 6 } }); await reload(); location.hash = "#/onboarding"; }}>Rifai il template delle creatività</button></div></div>
-    <p class="hint">Dati e configurazione: <span class="mono">${st.home}</span></p>
+  const [c, setC] = useState(st.config); const [ok, setOk] = useState("");
+  const save = async () => { await post("/api/config", { ai: c.ai, delivery: c.delivery, notion: c.notion, brand: c.brand }); setOk("Salvato"); reload(); };
+  const reopen = async (step) => { await post("/api/config", { onboarding: { done: false, step } }); await reload(); location.hash = "#/onboarding"; };
+  return html`<div>
+    <${Hero} kicker="Impostazioni" title="Motore e collegamenti" />
+    <div class="cols">
+      <div class="card">
+        <h2>Collegamenti</h2>
+        <div class="grid2">
+          <div><label>AI che fa il lavoro</label><select value=${c.ai.adapter} onChange=${(e) => setC({ ...c, ai: { ...c.ai, adapter: e.target.value } })}>${Object.entries(st.adapters).map(([id, a]) => html`<option value=${id}>${a.label}</option>`)}</select></div>
+          <div><label>Comando personalizzato</label><input value=${c.ai.custom_command} placeholder="usa {prompt}" onInput=${(e) => setC({ ...c, ai: { ...c.ai, custom_command: e.target.value } })} /></div>
+          <div><label>Piano Editoriale (Notion)</label><input value=${c.notion.editorial_db} onInput=${(e) => setC({ ...c, notion: { ...c.notion, editorial_db: e.target.value } })} /></div>
+          <div><label>Canale Slack per i report</label><input value=${c.delivery.slack_channel} onInput=${(e) => setC({ ...c, delivery: { ...c.delivery, slack_channel: e.target.value } })} /></div>
+        </div>
+        <div class="row" style="margin-top:20px"><button class="btn primary" onClick=${save}>Salva</button><span class="hint">${ok}</span></div>
+      </div>
+      <div class="stack" style="margin:0">
+        <div class="card"><h3>Rifai un passo</h3><p class="hint">Riapre l'onboarding dal punto scelto, senza perdere il resto.</p>
+          <div class="stack" style="margin-top:14px"><button class="btn ghost" style="width:100%" onClick=${() => reopen(6)}>Template delle creatività</button>
+            <button class="btn ghost" style="width:100%" onClick=${() => reopen(4)}>ICP e target</button>
+            <button class="btn ghost" style="width:100%" onClick=${() => reopen(1)}>Tutto l'onboarding</button></div></div>
+        <div class="card"><h3>Dati</h3><p class="hint mono" style="margin-top:8px;word-break:break-all">${st.home}</p></div>
+      </div>
+    </div>
   </div>`;
 }
 
