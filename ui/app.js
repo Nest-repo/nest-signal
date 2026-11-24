@@ -467,10 +467,11 @@ const P = {
   log: '<path d="M6 3.5h8l4 4v13H6z"/><path d="M14 3.5v4h4M9 12h6M9 16h6"/>',
   browser: '<rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M3 9h18"/>',
   freccia: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  competitor: '<circle cx="9" cy="9" r="3.5"/><circle cx="16.5" cy="10.5" r="2.5"/><path d="M3 19.5c.6-3.2 3-5 6-5s5.4 1.8 6 5M14.5 15.2c.6-.3 1.3-.4 2-.4 2.3 0 4 1.4 4.5 4.2"/>',
   chat: '<path d="M20.5 12a8.5 8.5 0 0 1-12.3 7.6L3.5 21l1.4-4.6A8.5 8.5 0 1 1 20.5 12z"/>',
 };
 const I = (n) => html`<svg class="i" viewBox="0 0 24 24" dangerouslySetInnerHTML=${{ __html: P[n] || "" }}></svg>`;
-const NAV = [["#/oggi", "Oggi", "oggi"], ["#/piano", "Piano editoriale", "calendario"], ["#/moduli", "Moduli", "moduli"], ["#/strategia", "Strategia", "strategia"], ["#/risultati", "Risultati", "risultati"], ["#/attivita", "Attività", "attivita"], ["#/impostazioni", "Impostazioni", "impostazioni"]];
+const NAV = [["#/oggi", "Oggi", "oggi"], ["#/piano", "Piano editoriale", "calendario"], ["#/moduli", "Moduli", "moduli"], ["#/strategia", "Strategia", "strategia"], ["#/analytics", "Analytics", "risultati"], ["#/competitor", "Competitor", "competitor"], ["#/attivita", "Attività", "attivita"], ["#/impostazioni", "Impostazioni", "impostazioni"]];
 const initials = (n) => (n || "?").split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 
 function Shell({ st, hash, children }) {
@@ -612,15 +613,137 @@ function Strategy({ st, reload }) {
   </div>`;
 }
 
+// ---------- ANALYTICS ----------
+const fmt = (n) => n == null ? "—" : Number(n).toLocaleString("it-IT");
+const ddmm = (d) => d ? new Date(d + "T12:00:00").toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" }) : "";
+
+// Barre verticali, una serie: barre sottili con angoli in alto, griglia leggera, tooltip al passaggio.
+function BarChart({ data, height = 180, width = 640, unit = "" }) {
+  const [hov, setHov] = useState(null);
+  if (!data.length) return html`<p class="hint">Ancora nessun dato.</p>`;
+  const W = width, H = height, padL = 36, padB = 22, padT = 10;
+  const max = Math.max(1, ...data.map((d) => d.value));
+  const step = (W - padL) / data.length, bw = Math.max(6, Math.min(36, step - 2));
+  const y = (v) => padT + (H - padT - padB) * (1 - v / max);
+  const ticks = [0, max / 2, max];
+  return html`<div class="chart" onMouseLeave=${() => setHov(null)}>
+    <svg viewBox=${`0 0 ${W} ${H}`} role="img" aria-label=${data.map((d) => `${d.label}: ${fmt(d.value)}${unit}`).join(", ")}>
+      ${ticks.map((t) => html`<g><line x1=${padL} x2=${W} y1=${y(t)} y2=${y(t)} class="grid" /><text x=${padL - 6} y=${y(t) + 4} class="ax" text-anchor="end">${fmt(Math.round(t))}</text></g>`)}
+      ${data.map((d, i) => {
+        const x = padL + i * step + (step - bw) / 2, h = Math.max(0, H - padB - y(d.value)), r = Math.min(4, bw / 2, h);
+        return html`<g onMouseEnter=${() => setHov(i)}>
+          <rect x=${padL + i * step} y=${padT} width=${step} height=${H - padT - padB} fill="transparent" />
+          ${h > 0 && html`<path class=${"bar " + (hov === i ? "on" : "")} d=${`M${x},${H - padB} V${H - padB - h + r} Q${x},${H - padB - h} ${x + r},${H - padB - h} H${x + bw - r} Q${x + bw},${H - padB - h} ${x + bw},${H - padB - h + r} V${H - padB} Z`} />`}
+          ${(i % Math.ceil(data.length / (W < 400 ? 3 : 12)) === 0) && html`<text x=${padL + i * step + step / 2} y=${H - 6} class="ax" text-anchor="middle">${d.label}</text>`}
+        </g>`;
+      })}
+    </svg>
+    ${hov !== null && html`<div class="tip" style=${`left:${((padL + hov * step + step / 2) / W) * 100}%`}><b>${fmt(data[hov].value)}${unit}</b><span>${data[hov].sub || data[hov].label}</span></div>`}
+  </div>`;
+}
+
+// Barre orizzontali con valore: per confronti tra categorie (funzione, pattern).
+function HBars({ rows, field = "conv", label = "conversione" }) {
+  const max = Math.max(1, ...rows.map((r) => r[field] || 0));
+  return html`<div class="hbars">${rows.map((r) => html`<div class="hrow" title=${`${r.nome}: ${label} ${fmt(r[field])} · ${r.post} post · impressioni mediane ${fmt(r.impressioni_mediane)} · ${r.follower} follower · ${r.lead} lead`}>
+    <span class="hname">${r.nome}</span>
+    <span class="htrack"><span class="hfill" style=${`width:${((r[field] || 0) / max) * 100}%`}></span></span>
+    <span class="hval">${r[field] == null ? "—" : fmt(r[field])}</span><span class="hint hn">${r.post} post</span>
+  </div>`)}</div>`;
+}
+
+function Overview() {
+  const [days, setDays] = useState(90); const [a, setA] = useState(null);
+  useEffect(() => { setA(null); api(`/api/analytics?days=${days}`).then(setA); }, [days]);
+  const K = a?.kpi;
+  const tiles = K ? [["Post pubblicati", K.pubblicati, `${K.misurati} misurati`], ["Impressioni", K.impressioni], ["Follower acquisiti", K.follower], ["Visite al profilo", K.visite], ["Commenti", K.commenti], ["Lead", K.lead], ["Conversione media", K.conv_media, "ogni 1.000 impressioni"]] : [];
+  const wk = a?.settimane || [];
+  return html`<div class="stack" style="margin:0">
+    <div class="row" style="justify-content:space-between"><div class="tabs">${[[30, "30 giorni"], [90, "90 giorni"], [0, "Tutto"]].map(([d, l]) => html`<button class=${"tab " + (days === d ? "on" : "")} onClick=${() => setDays(d)}>${l}</button>`)}</div>
+      <span class="hint">Aggiornati dal Performance loop (lun e gio)</span></div>
+    ${!a ? html`<p class="hint">Carico…</p>` : !K.misurati ? html`<div class="card"><h3>Ancora nessun post misurato</h3><p class="hint" style="margin-top:6px">I numeri arrivano dal Performance loop, che legge le statistiche dei tuoi post su LinkedIn col browser di Nest Signal. Pubblica, collega il browser (Impostazioni → Connessioni) e al primo giro vedi qui impressioni, follower, visite al profilo, commenti e lead per post.</p></div>` : html`
+      <div class="kpis">${tiles.map(([l, v, sub]) => html`<div class="kpi"><span>${l}</span><b>${fmt(v)}</b>${sub && html`<small>${sub}</small>`}</div>`)}</div>
+      <div class="card"><h3>Impressioni per settimana</h3><${BarChart} data=${wk.map((w) => ({ label: ddmm(w.settimana), value: w.impressioni, sub: `settimana del ${ddmm(w.settimana)} · ${w.post} post` }))} /></div>
+      <div class="grid3">${[["Follower acquisiti", "follower"], ["Visite al profilo", "visite"], ["Lead", "lead"]].map(([l, f]) => html`<div class="card"><h3>${l}</h3><${BarChart} width=${300} height=${190} data=${wk.map((w) => ({ label: ddmm(w.settimana), value: w[f], sub: `settimana del ${ddmm(w.settimana)}` }))} /></div>`)}</div>
+      <div class="grid2">
+        <div class="card"><h3>Per funzione</h3><p class="hint" style="margin:4px 0 12px">Conversione media: follower, visite, commenti e lead ogni 1.000 impressioni</p><${HBars} rows=${a.per_funzione} /></div>
+        <div class="card"><h3>Per pattern di hook</h3><p class="hint" style="margin:4px 0 12px">Quali aperture portano persone</p><${HBars} rows=${a.per_pattern} /></div>
+      </div>
+      <div class="grid2">
+        <div class="card"><h3>Top per conversione</h3>${a.top_conv.map((p) => html`<a class="toprow" href=${"#/piano/" + p.id}><span class="tt">${p.titolo}</span><span class="chip sm">${fmt(p.conv)}</span><span class="hint">${fmt(p.follower)} follower · ${fmt(p.lead)} lead</span></a>`)}</div>
+        <div class="card"><h3>Top per impressioni</h3>${a.top_reach.map((p) => html`<a class="toprow" href=${"#/piano/" + p.id}><span class="tt">${p.titolo}</span><span class="chip sm">${fmt(p.impressioni)}</span><span class="hint">${ddmm(p.data)}</span></a>`)}</div>
+      </div>
+      <div class="card"><h3>Lead arrivati da LinkedIn</h3>${a.leads.length ? html`<table class="tbl"><thead><tr><th>Quando</th><th>Chi</th><th>Da quale post</th><th>Certezza</th></tr></thead><tbody>${a.leads.map((l) => html`<tr><td>${ddmm((l.ts || "").slice(0, 10))}</td><td>${l.profilo ? html`<a href=${l.profilo} target="_blank" rel="noopener">${l.nome}</a>` : l.nome}</td><td>${l.post_titolo || "—"}</td><td><span class=${"pill " + (l.certezza === "certo" ? "ok" : l.certezza === "probabile" ? "warn" : "")}>${l.certezza}</span></td></tr>`)}</tbody></table>` : html`<p class="hint">Nessun lead nel periodo.</p>`}</div>
+      <details class="card"><summary><b>Tutti i post (tabella)</b></summary><table class="tbl" style="margin-top:12px"><thead><tr><th>Data</th><th>Post</th><th>Impr.</th><th>Follower</th><th>Visite</th><th>Comm.</th><th>Lead</th><th>Conv.</th></tr></thead><tbody>${[...a.posts].reverse().map((p) => html`<tr><td>${ddmm(p.data)}</td><td><a href=${"#/piano/" + p.id}>${(p.titolo || "").slice(0, 60)}</a></td><td>${fmt(p.impressioni)}</td><td>${fmt(p.follower)}</td><td>${fmt(p.visite)}</td><td>${fmt(p.commenti)}</td><td>${fmt(p.lead)}</td><td>${fmt(p.conv)}</td></tr>`)}</tbody></table></details>`}
+  </div>`;
+}
+
 function Results() {
-  const [t, setT] = useState("performance-ledger.md"); const [txt, setTxt] = useState("");
-  useEffect(() => { api(`/api/data/${t}`).then((d) => setTxt(d.content)); }, [t]);
+  const [t, setT] = useState("panoramica"); const [txt, setTxt] = useState("");
+  useEffect(() => { if (t !== "panoramica") api(`/api/data/${t}`).then((d) => setTxt(d.content)); }, [t]);
   return html`<div>
-    <${Hero} kicker="Risultati" title="Cosa funziona davvero" text="Si aggiorna da solo con il Performance loop (lun e gio) e l'Hook Lab (mar)." />
-    <div class="card stack">
-      <div class="tabs">${[["performance-ledger.md", "Cosa converte"], ["hook-library.md", "Hook validati"], ["hook-swipe.md", "Hook trovati fuori"]].map(([n, l]) => html`<button class=${"tab " + (t === n ? "on" : "")} onClick=${() => setT(n)}>${l}</button>`)}</div>
-      <div class="md" dangerouslySetInnerHTML=${{ __html: marked.parse((txt || "").replace(/<!--[\s\S]*?-->/g, "")) }}></div>
-    </div>
+    <${Hero} kicker="Analytics" title="Cosa porta persone, davvero" text="Impressioni, follower, visite al profilo, commenti e lead di ogni post, e quali funzioni e hook convertono. Si aggiorna da solo." />
+    <div class="tabs" style="margin-bottom:16px">${[["panoramica", "Panoramica"], ["performance-ledger.md", "Cosa converte"], ["hook-library.md", "Hook validati"], ["hook-swipe.md", "Hook trovati fuori"]].map(([n, l]) => html`<button class=${"tab " + (t === n ? "on" : "")} onClick=${() => setT(n)}>${l}</button>`)}</div>
+    ${t === "panoramica" ? html`<${Overview} />` : html`<div class="card"><div class="md" dangerouslySetInnerHTML=${{ __html: marked.parse((txt || "").replace(/<!--[\s\S]*?-->/g, "")) }}></div></div>`}
+  </div>`;
+}
+
+// ---------- COMPETITOR ----------
+function Competitors({ st, reload }) {
+  const [d, setD] = useState(null); const [f, setF] = useState({ name: "", url: "", note: "" }); const [err, setErr] = useState(""); const [tab, setTab] = useState("insight");
+  const job = useJob();
+  const load = () => api("/api/competitors").then(setD);
+  useEffect(() => { load(); }, []);
+  const add = async (c) => { setErr(""); try { await post("/api/competitors", c); setF({ name: "", url: "", note: "" }); load(); reload(); } catch (e) { setErr(e.message); } };
+  const remove = async (url) => { if (!confirm("Tolgo questo competitor dal radar?")) return; await post("/api/competitors/remove", { url }); load(); };
+  const radar = st.modules.find((m) => m.id === "competitor-radar");
+  const sum = Object.fromEntries((d?.summary?.competitor || []).map((c) => [c.url, c]));
+  return html`<div>
+    <${Hero} kicker="Competitor" title="Cosa fanno loro, dove ti posizioni tu" text="Ogni settimana la tua AI legge cosa pubblicano i tuoi competitor e cosa funziona a loro. Il content engine lo usa per prenderti la stessa nicchia con un angolo tuo, senza copiarli.">
+      ${radar && html`<span class="chip">${I("orologio")} ${cronHuman(radar.cron)}${d?.summary?.aggiornato ? " · aggiornato " + when(d.summary.aggiornato) : ""}</span>`}
+      <button class="btn primary" disabled=${!d?.list.length} onClick=${() => post("/api/run", { kind: "module", target: "competitor-radar" }).then(reload)}>${I("play")} Aggiorna ora</button>
+    <//>
+    ${!d ? html`<p class="hint">Carico…</p>` : html`
+    <div class="cols">
+      <div class="stack" style="margin:0">
+        ${d.list.length === 0 && html`<div class="card"><h3>Nessun competitor ancora</h3><p class="hint" style="margin-top:6px">Aggiungili qui accanto, oppure fai trovare alla tua AI chi vende al tuo stesso target e pubblica su LinkedIn.</p></div>`}
+        <div class="compgrid">${d.list.map((c) => { const s = sum[c.url]; return html`<div class="card comp">
+          <div class="row" style="justify-content:space-between"><a href=${c.url} target="_blank" rel="noopener"><b>${c.name}</b> ↗</a><button class="btn small ghost" onClick=${() => remove(c.url)}>Togli</button></div>
+          ${c.note && html`<p class="hint">${c.note}</p>`}
+          ${s ? html`<div class="mini">
+            <div><span>Post/settimana</span><b>${fmt(s.frequenza_settimana)}</b></div>
+            <div><span>Commenti mediani</span><b>${fmt(s.commenti_mediani)}</b></div>
+            <div><span>Reazioni mediane</span><b>${fmt(s.reazioni_mediane)}</b></div>
+          </div>
+          ${s.formati && html`<div class="chips">${Object.entries(s.formati).sort((a, b) => b[1] - a[1]).map(([k, v]) => html`<span class="chip sm">${k} · ${v}</span>`)}</div>`}
+          ${s.temi_top?.length > 0 && html`<p class="hint" style="margin-top:8px">Temi: ${s.temi_top.join(" · ")}</p>`}
+          ${s.post_migliore?.hook && html`<a class="best" href=${s.post_migliore.link} target="_blank" rel="noopener"><span class="kicker">Il post che ha funzionato di più</span><span>«${s.post_migliore.hook}»</span><small>${fmt(s.post_migliore.reazioni)} reazioni · ${fmt(s.post_migliore.commenti)} commenti · ${s.post_migliore.formato || ""}</small></a>`}
+          ${s.nota && html`<p class="hint" style="margin-top:8px">${s.nota}</p>`}` : html`<p class="hint" style="margin-top:8px">Dati al prossimo giro del radar.</p>`}
+        </div>`; })}</div>
+        ${(d.insights || d.top.length > 0) && html`<div class="card">
+          <div class="tabs" style="margin-bottom:14px">${[["insight", "Dove posizionarti"], ["top", "I loro post migliori"]].map(([k, l]) => html`<button class=${"tab " + (tab === k ? "on" : "")} onClick=${() => setTab(k)}>${l}</button>`)}</div>
+          ${tab === "insight" ? html`<div class="md" dangerouslySetInnerHTML=${{ __html: marked.parse((d.insights || "Arriva col primo giro del radar.").replace(/<!--[\s\S]*?-->/g, "")) }}></div>`
+            : html`<table class="tbl"><thead><tr><th>Chi</th><th>Hook</th><th>Formato</th><th>Reaz.</th><th>Comm.</th><th>Tema</th></tr></thead><tbody>${d.top.map((p) => html`<tr><td>${p.competitor}</td><td><a href=${p.link} target="_blank" rel="noopener">${(p.hook || "").slice(0, 90)}</a></td><td>${p.formato}</td><td>${fmt(p.reazioni)}</td><td>${fmt(p.commenti)}</td><td>${p.tema || ""}${p.pain && p.pain !== "✗" ? html`<br/><small class="hint">${p.pain}</small>` : ""}</td></tr>`)}</tbody></table>`}
+        </div>`}
+      </div>
+      <div class="stack" style="margin:0">
+        <div class="card stack">
+          <h3>Aggiungi un competitor</h3>
+          <div><label style="margin-top:0">Nome</label><input placeholder="es. Mario Rossi o Acme Srl" value=${f.name} onInput=${(e) => setF({ ...f, name: e.target.value })} /></div>
+          <div><label>Link LinkedIn</label><input placeholder="https://www.linkedin.com/in/… o /company/…" value=${f.url} onInput=${(e) => setF({ ...f, url: e.target.value })} /></div>
+          <div><label>Perché lo guardi (facoltativo)</label><input placeholder="es. stesso target, prezzo più basso" value=${f.note} onInput=${(e) => setF({ ...f, note: e.target.value })} /></div>
+          ${err && html`<p class="hint" style="color:var(--err)">${err}</p>`}
+          <button class="btn primary" disabled=${!f.url.trim()} onClick=${() => add(f)}>Aggiungi</button>
+        </div>
+        <div class="card stack">
+          <h3>Non sai chi sono?</h3>
+          <p class="hint">La tua AI li cerca nella tua knowledge base, nelle call e su LinkedIn, e te ne propone 3-6. Scegli tu chi aggiungere.</p>
+          <button class="btn" disabled=${job.busy} onClick=${() => job.start("setup", "find-competitors", load)}>${job.busy ? "Li sto cercando…" : "✦ Trovali con la tua AI"}</button>
+          ${job.run && !job.busy && job.run.status !== "ok" && html`<details><summary class="hint">Non è andata: cosa è successo</summary><pre class="log">${job.log.slice(-1500)}</pre></details>`}
+          ${d.proposte.map((p) => html`<div class="prop"><div><b>${p.name}</b><p class="hint">${p.perche}</p><a class="hint" href=${p.url} target="_blank" rel="noopener">${p.url.replace("https://www.linkedin.com", "")}</a></div><button class="btn small" onClick=${() => add({ name: p.name, url: p.url, note: p.perche })}>Aggiungi</button></div>`)}
+        </div>
+      </div>
+    </div>`}
   </div>`;
 }
 
@@ -805,7 +928,7 @@ function App() {
   if (err && !st) return html`<div class="main"><h2>Il pannello non risponde</h2><p class="hint">${err}. Riprovo da solo ogni 15 secondi: controlla che nest-signal sia acceso.</p></div>`;
   if (!st) return html`<div class="main"><p class="hint">Avvio…</p></div>`;
   if (!st.config.onboarding.done || hash.startsWith("#/onboarding")) return html`<${Onboarding} st=${st} reload=${reload} />`;
-  const Page = { "#/oggi": Today, "#/piano": Plan, "#/moduli": Modules, "#/strategia": Strategy, "#/risultati": Results, "#/attivita": Activity, "#/impostazioni": Settings }["#/" + (hash.split("?")[0].split("/")[1] || "oggi")] || Today;
+  const Page = { "#/oggi": Today, "#/piano": Plan, "#/moduli": Modules, "#/strategia": Strategy, "#/risultati": Results, "#/analytics": Results, "#/competitor": Competitors, "#/attivita": Activity, "#/impostazioni": Settings }["#/" + (hash.split("?")[0].split("/")[1] || "oggi")] || Today;
   return html`<${Shell} st=${st} hash=${hash}><${Page} st=${st} reload=${reload} hash=${hash} /><//>`;
 }
 

@@ -9,6 +9,8 @@ import { ADAPTERS, detect, mcpServers } from "./adapters.mjs";
 import { install as aiInstall, login as aiLogin, sendCode as aiCode, session as aiSession, active as aiActive, openTerminal, openChat } from "./ai-setup.mjs";
 import { enqueue, runs, runLog, recover } from "./runner.mjs";
 import { health, invalidate } from "./health.mjs";
+import { analytics } from "./analytics.mjs";
+import { competitorsData, addCompetitor, removeCompetitor } from "./competitors.mjs";
 import { ensureStrategy, strategyStatus, applyDraft, discardDraft } from "./strategy.mjs";
 import { reschedule, nextRuns } from "./scheduler.mjs";
 import { listPosts, getPost, createPost, updatePost, STATI, FUNNEL } from "./posts.mjs";
@@ -81,6 +83,9 @@ const routes = {
   "POST /api/run": async (b) => enqueue(b.kind === "setup" ? "setup" : "module", b.target, "manuale"),
   // fine onboarding: subito una strategia di partenza dai dati, poi la tua AI scrive quella vera (si applica da sola)
   "POST /api/onboarding/finish": async () => { const c = saveConfig({ onboarding: { done: true, step: 99 } }); ensureStrategy(); enqueue("setup", "draft-strategy", "onboarding"); reschedule(); return c; },
+  "GET /api/competitors": async () => competitorsData(),
+  "POST /api/competitors": async (b) => addCompetitor(b),
+  "POST /api/competitors/remove": async (b) => removeCompetitor(b),
   "GET /api/strategy/status": async () => strategyStatus(),
   "POST /api/strategy/generate": async (b) => ({ written: ensureStrategy({ force: !!b.force }) }),
   "POST /api/strategy/apply": async () => applyDraft({ force: true }),
@@ -144,6 +149,7 @@ const server = http.createServer(async (req, res) => {
       if (routes[key]) return send(res, 200, await routes[key](req.method === "GET" ? null : await readBody(req)));
       let m;
       if (req.method === "GET" && (m = /^\/api\/runs\/([a-z0-9-]+)\/log$/.exec(url.pathname))) return send(res, 200, { log: runLog(m[1]) });
+      if (req.method === "GET" && url.pathname === "/api/analytics") return send(res, 200, analytics({ days: Math.max(0, Math.min(3650, Number(url.searchParams.get("days") ?? 90) || 0)) }));
       if (req.method === "GET" && (m = /^\/api\/ai\/session\/([a-z0-9-]+)$/.exec(url.pathname))) return send(res, 200, aiSession(m[1]));
       if ((m = /^\/api\/data\/([a-z-]+\.md)$/.exec(url.pathname)) && EDITABLE.includes(m[1])) {
         if (req.method === "GET") return send(res, 200, { name: m[1], content: readData(m[1]) });

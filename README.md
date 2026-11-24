@@ -7,6 +7,8 @@ Costruito da [Nest](https://usanest.it), il partner operativo che progetta e ott
 ## Come funziona
 
 Un pannello locale (stile [Paperclip](https://github.com/paperclipai/paperclip)) con:
+- **Analytics**: impressioni, follower, visite al profilo, commenti e lead per post e per settimana, conversione per funzione e per pattern di hook, lead arrivati;
+- **Competitor**: aggiungi i competitor (o falli trovare alla tua AI) e vedi frequenza, formati, temi, il loro post migliore e dove posizionarti;
 - **Piano editoriale nel pannello**: bacheca per stato, calendario, scheda del post (testo, hook alternativi, immagine, approva, segna pubblicato);
 - **onboarding guidato nel browser**: la tua AI → chi sei → connessioni (la tua knowledge base, il browser per LinkedIn, dove registri le call, Slack facoltativo) → ogni pagina si **compila dalla tua knowledge base** e tu correggi → ICP e target → modello comunicativo (l'AI legge i tuoi post) → **creatività** (carichi le tue reference o un file Figma e l'AI costruisce il **tuo** template: colori, font, cornice) → moduli e orari;
 - **scheduler interno**: i moduli partono ai loro orari finché il pannello è acceso; pausa, "esegui ora" e log di ogni giro;
@@ -28,6 +30,7 @@ Un pannello locale (stile [Paperclip](https://github.com/paperclipai/paperclip))
 | Voce | lun 09:00 | aggiorna il tuo modello di scrittura |
 | Performance loop | lun e gio 08:40 | follower, visite profilo, commenti e lead per post → cosa converte |
 | Hook Lab | mar 09:30 | hook che funzionano su LinkedIn, validati sui tuoi dati |
+| Radar competitor | mer 10:00 | cosa pubblicano i tuoi competitor e cosa funziona a loro → spazi liberi e angoli per posizionarti (letto dal content engine, mai copiato) |
 | Radar commenti | lun-ven 3 volte (opz.) | post freschi delle persone in target, con un angolo per commentare |
 
 ## Requisiti

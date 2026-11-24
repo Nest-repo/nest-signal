@@ -80,6 +80,7 @@ export const REQUIRES = {
   performance: { hard: ["ai", "browser"], soft: [] },
   "hook-lab": { hard: ["ai", "browser", "icp"], soft: [] },
   "comment-radar": { hard: ["ai", "browser", "icp"], soft: [] },
+  "competitor-radar": { hard: ["ai", "browser"], soft: [] },
 };
 
 // Esito scritto dall'AI in DATA/state/<modulo>.json → { livello, saltato[], nota, ts }

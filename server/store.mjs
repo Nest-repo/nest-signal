@@ -21,6 +21,7 @@ export const DEFAULT_CONFIG = {
   meetings: { source: "", details: "" },
   knowledge: { source: "", details: "" },
   hook_lab: { reference_creators: [], search_topics: [] },
+  competitors: [],
   comment_radar: { max_per_run: 5 },
   brand: { bg: "#eee8de", ink: "#171717", accent: "#ff4700" },
   creative: { figma_url: "", notes: "", feedback: [], approved: false },
@@ -32,7 +33,7 @@ export const DEFAULT_CONFIG = {
 };
 
 function ensureDirs() {
-  for (const d of [HOME, DATA, RUNS, path.join(DATA, "state"), path.join(DATA, "drafts"), path.join(DATA, "creative", "references"), path.join(DATA, "meetings"), path.join(DATA, "posts"), path.join(DATA, "knowledge")]) fs.mkdirSync(d, { recursive: true });
+  for (const d of [HOME, DATA, RUNS, path.join(DATA, "state"), path.join(DATA, "drafts"), path.join(DATA, "creative", "references"), path.join(DATA, "meetings"), path.join(DATA, "posts"), path.join(DATA, "knowledge"), path.join(DATA, "competitors")]) fs.mkdirSync(d, { recursive: true });
   // file di conoscenza: si copiano dai template solo se mancano
   const tdir = path.join(PKG, "templates");
   for (const f of fs.readdirSync(tdir)) {

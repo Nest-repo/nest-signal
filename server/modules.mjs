@@ -6,6 +6,7 @@ export const MODULES = [
   { id: "voice-refresh", name: "Voce", desc: "Aggiorna il tuo modello di scrittura da post pubblicati e modifiche alle bozze.", cron: "0 9 * * 1", browser: false, needs: [] },
   { id: "performance", name: "Performance loop", desc: "Misura follower, visite profilo, commenti e lead di ogni post e scrive cosa converte.", cron: "40 8 * * 1,4", browser: true, needs: ["browser"] },
   { id: "hook-lab", name: "Hook Lab", desc: "Cerca su LinkedIn gli hook che funzionano e li valida sui tuoi dati.", cron: "30 9 * * 2", browser: true, needs: ["browser"] },
+  { id: "competitor-radar", name: "Radar competitor", desc: "Ogni settimana legge cosa pubblicano i tuoi competitor e cosa funziona a loro, per posizionarti nella stessa nicchia senza copiarli.", cron: "0 10 * * 3", browser: true, needs: ["browser"] },
   { id: "comment-radar", name: "Radar commenti", desc: "Ti segnala i post freschi delle persone in target, con un angolo per commentare.", cron: "0 9,13,17 * * 1-5", browser: true, needs: ["browser"], optional: true },
 ];
 
@@ -14,6 +15,7 @@ export const SETUP_JOBS = {
   "check-connections": { name: "Controllo connessioni", file: "setup/check-connections.md" },
   "draft-icp": { name: "Proposta ICP e target", file: "setup/draft-icp.md" },
   "draft-strategy": { name: "Strategia editoriale", file: "setup/draft-strategy.md" },
+  "find-competitors": { name: "Trova i competitor", file: "setup/find-competitors.md" },
   "draft-voice": { name: "Modello comunicativo dai tuoi post", file: "setup/draft-voice.md" },
   "design-template": { name: "Template delle creatività", file: "setup/design-template.md" },
   "prefill-profilo": { name: "Profilo dalla knowledge base", file: "setup/prefill.md", page: "profilo" },

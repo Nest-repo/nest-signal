@@ -26,8 +26,10 @@ Questa cartella è **Nest Signal**: il sistema che scrive i post LinkedIn del cl
 | «Nuova idea: …» | crea un post `stato: "Idea"` (API `POST /api/posts` se il pannello è acceso, altrimenti scrivi il file) |
 | «Scrivimi il post su …» | segui `modules/content-engine.md` dallo Step 0 per quell'unico post |
 | «Rifai l'immagine» | metti `creativita: ""` nel post e lancia `node bin/nest-signal.mjs run creative` |
-| «Lancia il modulo X adesso» | `node bin/nest-signal.mjs run <content-engine|creative|daily-question|voice-refresh|performance|hook-lab|comment-radar>` |
+| «Lancia il modulo X adesso» | `node bin/nest-signal.mjs run <content-engine|creative|daily-question|voice-refresh|performance|hook-lab|competitor-radar|comment-radar>` |
 | «Aggiungi questo documento alla knowledge base» | copialo in `data/knowledge/` (sola lettura dopo: non modificare i documenti del cliente) |
+| «Come stanno andando i post?» | `GET /api/analytics?days=30` col pannello acceso, altrimenti `data/posts/*.json` (campo `metriche`) e `data/performance-ledger.md` |
+| «Aggiungi X ai competitor», «cosa fanno i competitor?» | `POST /api/competitors {name,url,note}` (o `config.json` → `competitors`); dati in `data/competitors/` e `data/competitor-insights.md` |
 | «Cambia la strategia / il target» | modifica `data/strategy.md` (e `config.json` → `audience` per l'ICP); di' al cliente cosa hai cambiato |
 
 Con il pannello acceso puoi usare l'API locale (header obbligatorio `X-Nest-Signal: 1`):

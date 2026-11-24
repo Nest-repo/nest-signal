@@ -12,6 +12,7 @@ Leggi, in quest'ordine di autorità:
 3. `DATA/hook-library.md` — sezione 0 (filtro forza, scritta dall'autore) prima di tutto; poi sezione 4 "Hook pronti per i pain" e "Da non usare".
 4. `DATA/persona.md` — come scrive l'autore. Vince su tutto quando si parla di stile.
 5. `DATA/pain-map.md` — la fonte principale degli argomenti.
+6. `DATA/competitor-insights.md` (se c'è, dal Radar competitor) — sezioni 3 "Spazi liberi" e 4 "Come posizionarsi" per scegliere l'angolo, 1 e 5 per formato e struttura che funzionano nella nicchia. **Mai copiare un loro post o hook**, mai nominarli: serve a prendersi lo spazio, non a imitarli. Se contraddice `strategy.md`, vince la strategia.
 
 ## Step 1 — Riconciliazione leggera del Piano Editoriale
 
