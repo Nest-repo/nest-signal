@@ -529,7 +529,7 @@ function Today({ st }) {
         <h3>Cosa ha fatto il sistema</h3>
         ${!feed ? html`<p class="hint">Carico…</p>` : !feed.length ? html`<p class="hint">Ancora niente: il primo giro del content engine scrive qui le bozze nuove.</p>` : html`<div>
           ${feed.map((f) => html`<div class="feed-item">
-            <div><b style="font-weight:500">${f.titolo || f.title}</b><div class="row" style="margin-top:6px"><span class="pill">${f.tipo || f.type}</span><span class="when">${f.modulo || f.module} · ${when(f.ts)}</span></div>
+            <div><b style="font-weight:500">${f.titolo || f.title}</b><div class="row" style="margin-top:6px"><span class="pill">${f.tipo || f.type}</span><span class="when">${jobName(st, f.modulo || f.module)} · ${when(f.ts)}</span></div>
               ${f.immagine && html`<a href=${"/creative-img?p=" + encodeURIComponent(f.immagine)} target="_blank"><img onError=${(e) => (e.currentTarget.parentNode.style.display = "none")} src=${"/creative-img?p=" + encodeURIComponent(f.immagine)} style="width:150px;border-radius:10px;margin-top:10px;border:1px solid var(--line)" /></a>`}</div>
             ${f.link && html`<a class="btn small ghost" href=${f.link} target=${f.link.startsWith("http") ? "_blank" : undefined} rel="noopener">Apri</a>`}</div>`)}</div>`}
       </div>
