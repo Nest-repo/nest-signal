@@ -78,7 +78,7 @@ Tutto nella cartella `workspace/` del progetto (esclusa da git; cambia con `NEST
 |---|---|
 | `bin/` | comando `nest-signal` |
 | `server/` | API locale, adapter delle AI, scheduler, esecuzioni |
-| `ui/` | pannello e onboarding (Preact senza build; stile Tailwind CSS v4 coi colori Nest: sorgente `ui/tailwind.src.css`, compilato in `ui/tailwind.css` con `npm run build:css`) |
+| `ui/` | pannello e onboarding (Preact, senza build) |
 | `modules/` | istruzioni dei moduli (`_common.md` + uno per modulo) |
 | `setup/` | lavori dell'onboarding (compila dalla knowledge base, proposta ICP, modello comunicativo, template creatività, controllo connessioni) |
 | `templates/` | file di partenza dei dati |

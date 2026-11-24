@@ -3,18 +3,12 @@
   "version": "0.1.0",
   "description": "Nest Signal — il motore LinkedIn che scrive nella tua voce, misura cosa porta call e migliora da solo. Onboarding guidato e pannello locale.",
   "type": "module",
-  "bin": {
-    "nest-signal": "bin/nest-signal.mjs"
-  },
+  "bin": { "nest-signal": "bin/nest-signal.mjs" },
   "scripts": {
     "start": "node bin/nest-signal.mjs start",
-    "onboard": "node bin/nest-signal.mjs onboard",
-    "build:css": "tailwindcss -i ui/tailwind.src.css -o ui/tailwind.css --minify",
-    "watch:css": "tailwindcss -i ui/tailwind.src.css -o ui/tailwind.css --watch"
+    "onboard": "node bin/nest-signal.mjs onboard"
   },
-  "engines": {
-    "node": ">=20"
-  },
+  "engines": { "node": ">=20" },
   "dependencies": {
     "croner": "^9.0.0",
     "htm": "^3.1.1",
@@ -25,9 +19,5 @@
     "playwright": "^1.50.0"
   },
   "license": "UNLICENSED",
-  "private": true,
-  "devDependencies": {
-    "@tailwindcss/cli": "^4.3.5",
-    "tailwindcss": "^4.3.5"
-  }
+  "private": true
 }
