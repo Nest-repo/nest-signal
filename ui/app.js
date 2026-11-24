@@ -63,7 +63,7 @@ function JobBox({ job, label }) {
 
 function NestCTA({ cfg, title, text, cta }) {
   return html`<div class="nest-cta">
-    <div class="kicker" style="color:#cfc7ba">Nest · Growth partner</div>
+    <div class="kicker">Nest · Growth partner</div>
     <h3 style="margin-top:8px">${title}</h3><p>${text}</p>
     <a class="btn accent" href=${cfg?.nest?.booking_url || "https://cal.com/meet-nest/ops-partner"} target="_blank" rel="noopener">${cta || "Prenota 30 minuti con Nest"} →</a>
   </div>`;
@@ -87,7 +87,7 @@ function Onboarding({ st, reload }) {
   const Body = [StepWelcome, StepAI, StepProfile, StepConnections, StepICP, StepVoice, StepCreative, StepNotion, StepModules, StepFinish][step];
   return html`<div class="ob">
     <aside class="ob-rail">
-      <div class="brand">Nest <span>Signal</span></div>
+      <div class="brand"><img src="/brand/nest-logo.svg" alt="" /><div>Nest Signal<small>by Nest</small></div></div>
       ${STEPS.map((s, i) => html`<div class=${"step " + (i < step ? "done" : i === step ? "on" : "")} onClick=${() => i < step && setStep(i)} style=${i < step ? "cursor:pointer" : ""}>
         <span class="dot">${i < step ? "✓" : i + 1}</span>${s}</div>`)}
       <div style="flex:1"></div>
@@ -106,9 +106,9 @@ function StepWelcome({ cfg, next }) {
     <h1>LinkedIn che porta call,<br/><em>senza scrivere da zero.</em></h1>
     <p style="font-size:19px;max-width:620px">Nest Signal scrive le bozze nella tua voce partendo dai problemi veri dei tuoi clienti, crea l'immagine di ogni post, misura cosa porta follower, visite e lead, e ogni settimana migliora da solo. Tu approvi e pubblichi.</p>
     <div class="cards">
-      <div class="card"><h3>10 minuti</h3><p class="hint">Colleghiamo la tua AI, Notion, il browser e dove registri le call.</p></div>
-      <div class="card"><h3>Ti conosce</h3><p class="hint">Mappiamo ICP, target e il tuo modo di comunicare, con l'AI che legge i tuoi post.</p></div>
-      <div class="card"><h3>Gira da solo</h3><p class="hint">Le routine partono agli orari che scegli. Niente viene pubblicato senza di te.</p></div>
+      <div class="card feature"><span class="n">1</span><h3>10 minuti</h3><p class="hint">Colleghiamo la tua AI, Notion, il browser e dove registri le call.</p></div>
+      <div class="card feature"><span class="n">2</span><h3>Ti conosce</h3><p class="hint">Mappiamo ICP, target e il tuo modo di comunicare, con l'AI che legge i tuoi post.</p></div>
+      <div class="card feature"><span class="n">3</span><h3>Gira da solo</h3><p class="hint">Le routine partono agli orari che scegli. Niente viene pubblicato senza di te.</p></div>
     </div>
     <div class="row" style="margin-top:28px"><button class="btn accent" onClick=${() => next()}>Iniziamo →</button></div>
     <p class="hint" style="margin-top:22px">Costruito da Nest, growth partner per founder che vogliono un sistema e non più ore. <a href=${cfg.nest.site} target="_blank" rel="noopener">usanest.it</a></p>
@@ -386,16 +386,24 @@ function StepFinish({ st, cfg, reload }) {
 }
 
 // ---------- PANNELLO ----------
-const NAV = [["#/oggi", "Oggi"], ["#/moduli", "Moduli"], ["#/strategia", "Strategia"], ["#/risultati", "Risultati"], ["#/attivita", "Attività"], ["#/impostazioni", "Impostazioni"]];
+const ICON = {
+  oggi: html`<svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10"/></svg>`,
+  moduli: html`<svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>`,
+  strategia: html`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg>`,
+  risultati: html`<svg viewBox="0 0 24 24"><path d="M4 4v16h16"/><path d="m7.5 14 3.5-4 3 3 4.5-6"/></svg>`,
+  attivita: html`<svg viewBox="0 0 24 24"><path d="M4 12h3.5l2.5-6 4 12 2.5-6H20"/></svg>`,
+  impostazioni: html`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/></svg>`,
+};
+const NAV = [["#/oggi", "Oggi", "oggi"], ["#/moduli", "Moduli", "moduli"], ["#/strategia", "Strategia", "strategia"], ["#/risultati", "Risultati", "risultati"], ["#/attivita", "Attività", "attivita"], ["#/impostazioni", "Impostazioni", "impostazioni"]];
 
 function Shell({ st, hash, children }) {
   return html`<div class="shell">
     <aside class="side">
-      <div class="brand">Nest <span>Signal</span></div>
-      ${NAV.map(([href, l]) => html`<a class=${"nav " + (hash.startsWith(href) ? "on" : "")} href=${href}>${l}</a>`)}
+      <div class="brand"><img src="/brand/nest-logo.svg" alt="" /><div>Nest Signal<small>by Nest</small></div></div>
+      ${NAV.map(([href, l, ic]) => html`<a class=${"nav " + (hash.startsWith(href) ? "on" : "")} href=${href}>${ICON[ic]}${l}</a>`)}
       <div class="grow"></div>
       ${st.running.length > 0 && html`<div class="card" style="padding:14px;margin-bottom:12px"><span class="pill run">al lavoro</span><p class="hint" style="margin:6px 0 0">${st.running.map((r) => r.target).join(", ")}</p></div>`}
-      <div class="card" style="padding:16px"><b>Ti serve una mano?</b><p class="hint">Nest imposta il sistema con te.</p><a class="btn small accent" href=${st.config.nest.booking_url} target="_blank" rel="noopener">Prenota una call</a></div>
+      <div class="help"><b>Ti serve una mano?</b><p>Nest imposta il sistema con te: call registrate, ICP, CRM.</p><a class="btn small accent" href=${st.config.nest.booking_url} target="_blank" rel="noopener">Prenota una call</a></div>
     </aside>
     <main class="main">${children}</main>
   </div>`;
@@ -407,7 +415,7 @@ function Question() {
   if (!q?.domanda) return html`<div class="card"><h3>Domanda del giorno</h3><p class="hint">Arriva alla prossima esecuzione del modulo.</p></div>`;
   return html`<div class="card"><div class="kicker">Domanda del giorno</div><h3 style="margin-top:8px">${q.domanda}</h3>
     ${done ? html`<p class="hint">Grazie: diventa materiale per i prossimi post.</p>` : html`<textarea style="font-family:var(--sans);font-size:15px;min-height:90px" placeholder="Due righe, come le diresti a voce" value=${a} onInput=${(e) => setA(e.target.value)}></textarea>
-    <div class="row" style="margin-top:10px"><button class="btn small" disabled=${!a.trim()} onClick=${() => post("/api/answer", { domanda: q.domanda, risposta: a }).then(() => setDone(true))}>Rispondi</button></div>`}</div>`;
+    <div class="row" style="margin-top:10px"><button class="btn small primary" disabled=${!a.trim()} onClick=${() => post("/api/answer", { domanda: q.domanda, risposta: a }).then(() => setDone(true))}>Rispondi</button></div>`}</div>`;
 }
 
 function Today({ st }) {
@@ -434,13 +442,13 @@ function Modules({ st, reload }) {
   const save = async (id, patch) => { await post("/api/config", { modules: { [id]: patch } }); reload(); };
   const showLog = async (r) => { setLogFor(r); setLog((await api(`/api/runs/${r.id}/log`)).log); };
   return html`<div class="stack">
-    <div class="kicker">Moduli</div><h2>Le routine</h2>
+    <div class="topbar"><div><div class="kicker">Moduli</div><h1>Le routine</h1><p class="hint">Ogni modulo gira al suo orario finché il pannello è acceso. Puoi metterlo in pausa o lanciarlo subito.</p></div></div>
     <div class="cards">${st.modules.map((m) => html`<div class="card module stack">
       <h3>${m.name}<button class=${"toggle " + (m.enabled ? "on" : "")} onClick=${() => save(m.id, { enabled: !m.enabled })} aria-label="attiva o metti in pausa"></button></h3>
       <p class="hint" style="margin:0">${m.desc}</p>
       <div class="row"><span class="mono">${cronHuman(m.cron)}</span>${m.enabled ? html`<span class="hint">prossimo: ${when(m.next_run)}</span>` : html`<span class="pill">in pausa</span>`}</div>
       <div class="row">${m.last_run ? html`${pill(m.last_run.status)}<span class="hint">${when(m.last_run.ended_at || m.last_run.started_at)}</span><a href="#" onClick=${(e) => { e.preventDefault(); showLog(m.last_run); }}>log</a>` : html`<span class="hint">mai eseguito</span>`}</div>
-      <div class="row"><button class="btn small" onClick=${() => post("/api/run", { kind: "module", target: m.id }).then(reload)}>Esegui ora</button>
+      <div class="row"><button class="btn small primary" onClick=${() => post("/api/run", { kind: "module", target: m.id }).then(reload)}>Esegui ora</button>
         <input class="mono" style="width:170px;padding:6px 10px" value=${m.cron} onChange=${(e) => save(m.id, { cron: e.target.value })} title="orario cron" /></div>
     </div>`)}</div>
     ${logFor && html`<div class="card"><div class="row"><b>${logFor.target}</b>${pill(logFor.status)}<button class="btn small ghost" onClick=${() => setLogFor(null)}>chiudi</button></div><pre class="log">${log || "(vuoto)"}</pre></div>`}
@@ -452,11 +460,11 @@ function Strategy() {
   const [f, setF] = useState(FILES[0][0]); const [txt, setTxt] = useState(""); const [saved, setSaved] = useState("");
   useEffect(() => { api(`/api/data/${f}`).then((d) => { setTxt(d.content); setSaved(""); }); }, [f]);
   return html`<div class="stack">
-    <div class="kicker">Strategia</div><h2>Da dove pesca il sistema</h2>
+    <div class="topbar"><div><div class="kicker">Strategia</div><h1>Da dove pesca il sistema</h1></div></div>
     <p class="hint">La strategia è l'unica fonte delle regole editoriali. I dati (cosa converte, hook validati) li aggiornano i moduli da soli.</p>
     <div class="tabs">${FILES.map(([n, l]) => html`<button class=${"tab " + (f === n ? "on" : "")} onClick=${() => setF(n)}>${l}</button>`)}</div>
     <textarea style="min-height:480px" value=${txt} onInput=${(e) => setTxt(e.target.value)}></textarea>
-    <div class="row"><button class="btn" onClick=${async () => { await put(`/api/data/${f}`, { content: txt }); setSaved("salvato"); }}>Salva</button><span class="hint">${saved}</span></div>
+    <div class="row"><button class="btn primary" onClick=${async () => { await put(`/api/data/${f}`, { content: txt }); setSaved("salvato"); }}>Salva</button><span class="hint">${saved}</span></div>
   </div>`;
 }
 
@@ -464,7 +472,7 @@ function Results() {
   const [t, setT] = useState("performance-ledger.md"); const [txt, setTxt] = useState("");
   useEffect(() => { api(`/api/data/${t}`).then((d) => setTxt(d.content)); }, [t]);
   return html`<div class="stack">
-    <div class="kicker">Risultati</div><h2>Cosa funziona davvero</h2>
+    <div class="topbar"><div><div class="kicker">Risultati</div><h1>Cosa funziona davvero</h1><p class="hint">Si aggiorna da solo con il Performance loop e l’Hook Lab.</p></div></div>
     <div class="tabs">${[["performance-ledger.md", "Cosa converte"], ["hook-library.md", "Hook validati"], ["hook-swipe.md", "Hook trovati fuori"]].map(([n, l]) => html`<button class=${"tab " + (t === n ? "on" : "")} onClick=${() => setT(n)}>${l}</button>`)}</div>
     <div class="card md" dangerouslySetInnerHTML=${{ __html: marked.parse((txt || "").replace(/<!--[\s\S]*?-->/g, "")) }}></div>
   </div>`;
@@ -474,7 +482,7 @@ function Activity() {
   const [list, setList] = useState([]); const [open, setOpen] = useState(null); const [log, setLog] = useState("");
   useEffect(() => { api("/api/runs").then(setList); }, []);
   return html`<div class="stack">
-    <div class="kicker">Attività</div><h2>Ogni giro, con il suo log</h2>
+    <div class="topbar"><div><div class="kicker">Attività</div><h1>Ogni giro, con il suo log</h1></div></div>
     <div class="card">${list.length ? list.map((r) => html`<div class="feed-item" style="grid-template-columns:150px 1fr auto">
       <span class="mono">${when(r.started_at || r.queued_at)}</span><div><b>${r.target}</b><div class="hint">${r.kind === "setup" ? "onboarding" : "modulo"} · ${r.trigger}</div></div>
       <div class="row">${pill(r.status)}<a href="#" onClick=${async (e) => { e.preventDefault(); setOpen(r); setLog((await api(`/api/runs/${r.id}/log`)).log); }}>log</a></div></div>`) : html`<p class="hint">Nessun giro ancora.</p>`}</div>
@@ -486,7 +494,7 @@ function Settings({ st, reload }) {
   const [c, setC] = useState(st.config);
   const save = async () => { await post("/api/config", { ai: c.ai, delivery: c.delivery, notion: c.notion, brand: c.brand }); reload(); };
   return html`<div class="stack">
-    <div class="kicker">Impostazioni</div><h2>Motore e collegamenti</h2>
+    <div class="topbar"><div><div class="kicker">Impostazioni</div><h1>Motore e collegamenti</h1></div></div>
     <div class="card"><div class="grid2">
       <div><label>AI</label><select value=${c.ai.adapter} onChange=${(e) => setC({ ...c, ai: { ...c.ai, adapter: e.target.value } })}>${Object.entries(st.adapters).map(([id, a]) => html`<option value=${id}>${a.label}</option>`)}</select></div>
       <div><label>Comando personalizzato</label><input value=${c.ai.custom_command} onInput=${(e) => setC({ ...c, ai: { ...c.ai, custom_command: e.target.value } })} /></div>
@@ -494,7 +502,7 @@ function Settings({ st, reload }) {
       <div><label>Canale Slack per i report</label><input value=${c.delivery.slack_channel} onInput=${(e) => setC({ ...c, delivery: { ...c.delivery, slack_channel: e.target.value } })} /></div>
       <div><label>Colore d'accento (creatività)</label><input type="color" value=${c.brand.accent} onInput=${(e) => setC({ ...c, brand: { ...c.brand, accent: e.target.value } })} style="height:44px" /></div>
       <div><label>Sfondo (creatività)</label><input type="color" value=${c.brand.bg} onInput=${(e) => setC({ ...c, brand: { ...c.brand, bg: e.target.value } })} style="height:44px" /></div>
-    </div><div class="row" style="margin-top:16px"><button class="btn" onClick=${save}>Salva</button>
+    </div><div class="row" style="margin-top:16px"><button class="btn primary" onClick=${save}>Salva</button>
       <button class="btn ghost" onClick=${async () => { await post("/api/config", { onboarding: { done: false, step: 1 } }); await reload(); location.hash = "#/onboarding"; }}>Rifai l'onboarding</button>
       <button class="btn ghost" onClick=${async () => { await post("/api/config", { onboarding: { done: false, step: 6 } }); await reload(); location.hash = "#/onboarding"; }}>Rifai il template delle creatività</button></div></div>
     <p class="hint">Dati e configurazione: <span class="mono">${st.home}</span></p>
