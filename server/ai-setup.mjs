@@ -1,7 +1,7 @@
 // Installazione e accesso dell'AI dal pannello, senza Terminale.
 // - Installazione: npm dentro la cartella del progetto (.ai/), niente sudo e niente modifiche globali.
 // - Accesso: lancia il login della CLI, che apre il browser; se la CLI chiede un codice, il pannello lo passa.
-import { spawn } from "node:child_process";
+import { spawn, execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -86,10 +86,36 @@ export function session(id) {
   return view(s);
 }
 
+// Apre la tua AI nella cartella di Nest Signal con una richiesta già scritta (es. «accorcia questo post»).
+// Il testo passa da un file, così niente problemi di virgolette nel comando.
+// percorso assoluto: il Terminale del cliente può non avere la CLI nel PATH (es. ~/.local/bin o .ai/)
+const binPath = (bin) => { try { return execFileSync("/usr/bin/env", ["which", bin], { env: process.env }).toString().trim() || bin; } catch { return bin; } };
+const INTERACTIVE = {
+  claude: (f) => `${sq(binPath("claude"))} "$(cat ${f})"`,
+  codex: (f) => `${sq(binPath("codex"))} "$(cat ${f})"`,
+  gemini: (f) => `${sq(binPath("gemini"))} -i "$(cat ${f})"`,
+};
+const sq = (x) => `'${String(x).replace(/'/g, "'\\''")}'`;
+export function openChat(adapter, prompt, dataDir) {
+  const a = adapterOf(adapter);
+  const text = String(prompt || "").trim();
+  if (!text || text.length > 4000) throw new Error("Richiesta vuota o troppo lunga");
+  const file = path.join(dataDir, "drafts", `chat-${Date.now().toString(36)}.txt`);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, text);
+  const cmd = `cd ${sq(path.resolve(path.dirname(new URL(import.meta.url).pathname), ".."))} && ${INTERACTIVE[adapter](sq(file))}`;
+  if (process.platform === "darwin") {
+    const p = spawn("osascript", ["-e", `tell application "Terminal" to do script "${cmd.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`, "-e", 'tell application "Terminal" to activate'], { stdio: "ignore", detached: true });
+    p.unref();
+    return { ok: true, opened: true, label: a.label };
+  }
+  return { ok: true, opened: false, cmd, label: a.label };
+}
+
 // Apre il Terminale con il comando dell'AI (per le CLI che fanno il login solo in modo interattivo).
 export function openTerminal(adapter) {
   const a = adapterOf(adapter);
-  const cmd = a.terminalCmd || a.bin;
+  const cmd = binPath(a.bin);
   if (process.platform === "darwin") {
     const p = spawn("osascript", ["-e", `tell application "Terminal" to do script "${cmd.replace(/"/g, '\\"')}"`, "-e", 'tell application "Terminal" to activate'], { stdio: "ignore", detached: true });
     p.unref();

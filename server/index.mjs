@@ -6,7 +6,7 @@ import { spawn } from "node:child_process";
 import { PKG, HOME, DATA, loadConfig, saveConfig, readData, writeData, readFeed, EDITABLE } from "./store.mjs";
 import { MODULES, SETUP_JOBS, moduleSettings } from "./modules.mjs";
 import { ADAPTERS, detect, mcpServers } from "./adapters.mjs";
-import { install as aiInstall, login as aiLogin, sendCode as aiCode, session as aiSession, active as aiActive, openTerminal } from "./ai-setup.mjs";
+import { install as aiInstall, login as aiLogin, sendCode as aiCode, session as aiSession, active as aiActive, openTerminal, openChat } from "./ai-setup.mjs";
 import { enqueue, runs, runLog, recover } from "./runner.mjs";
 import { health, invalidate } from "./health.mjs";
 import { ensureStrategy, strategyStatus, applyDraft, discardDraft } from "./strategy.mjs";
@@ -62,6 +62,17 @@ const routes = {
   "POST /api/ai/install": async (b) => aiInstall(b.adapter),
   "POST /api/ai/login": async (b) => aiLogin(b.adapter),
   "POST /api/ai/code": async (b) => aiCode(b.id, b.code),
+  // apre la tua AI nella cartella di Nest Signal con la richiesta sul post già scritta
+  "POST /api/ai/chat": async (b) => {
+    const cfg = loadConfig();
+    if (cfg.ai.adapter === "custom") throw new Error("Con un comando personalizzato copia la richiesta e incollala nella tua AI.");
+    let ctx = "";
+    if (b.post_id) {
+      const p = getPost(b.post_id);
+      ctx = `Nel Piano editoriale di Nest Signal, post «${p.titolo || ""}» (file ${path.join(DATA, "posts", p.id + ".json")}). Segui AGENTS.md: modifica solo i campi che servono, non toccare testo_bozza, rispetta ${path.join(DATA, "strategy.md")} e ${path.join(DATA, "persona.md")}. Richiesta: `;
+    }
+    return openChat(cfg.ai.adapter, ctx + String(b.prompt || ""), DATA);
+  },
   "POST /api/ai/terminal": async (b) => openTerminal(b.adapter),
   "GET /api/mcp": async () => mcpServers(loadConfig().ai.adapter),
   "POST /api/config": async (b) => { const c = saveConfig(b); reschedule(); if (b.ai) { invalidate("ai"); invalidate("browser"); } return c; },

@@ -723,6 +723,31 @@ function Calendar({ posts }) {
   </div>`;
 }
 
+// CTA: apre la tua AI nella cartella di Nest Signal con la richiesta sul post già scritta.
+function AskAI({ st, p, reloadPost }) {
+  const [req, setReq] = useState("accorcia il testo e rendi l'hook più diretto");
+  const [msg, setMsg] = useState(""); const [err, setErr] = useState("");
+  const label = st.adapters[st.config.ai.adapter]?.label || "la tua AI";
+  const open = async () => {
+    setErr(""); setMsg("");
+    try {
+      const r = await post("/api/ai/chat", { post_id: p.id, prompt: req });
+      setMsg(r.opened ? `Ho aperto ${r.label} con la tua richiesta. Quando ha finito, ricarica il post.` : `Apri il Terminale e incolla: ${r.cmd}`);
+    } catch (e) { setErr(e.message); }
+  };
+  return html`<div class="nest-cta" style="padding:22px">
+    <div class="kicker">${I("chat")} Cambialo con ${label}</div>
+    <h3 style="margin-top:8px">Cosa vuoi cambiare?</h3>
+    <textarea style="min-height:72px;margin-top:10px;font-family:var(--sans);font-size:15px;background:#fff;color:var(--ink)" value=${req} onInput=${(e) => setReq(e.target.value)}></textarea>
+    <div class="row" style="margin-top:12px">
+      <button class="btn accent" disabled=${!req.trim()} onClick=${open}>Apri in ${label} →</button>
+      ${msg && html`<button class="btn small ghost" style="color:#fff;border-color:rgba(255,255,255,.3)" onClick=${reloadPost}>Ricarica il post</button>`}
+    </div>
+    ${msg && html`<p style="margin-top:10px">${msg}</p>`}
+    ${err && html`<p style="margin-top:10px">${err}</p>`}
+  </div>`;
+}
+
 function PostDetail({ id, st, back }) {
   const [p, setP] = useState(null); const [saved, setSaved] = useState(""); const [meta, setMeta] = useState({ stati: [], funnel: [] });
   useEffect(() => { api(`/api/posts/${id}`).then(setP); api("/api/posts").then((d) => setMeta(d)); }, [id]);
@@ -760,12 +785,12 @@ function PostDetail({ id, st, back }) {
           <label>Data di pubblicazione</label><input type="date" value=${(p.data || "").slice(0, 10)} onInput=${(e) => set("data", e.target.value)} />
           <label>Funzione</label><select value=${p.funnel || ""} onChange=${(e) => set("funnel", e.target.value)}><option value="">—</option>${meta.funnel.map((s) => html`<option>${s}</option>`)}</select>
           <label>CTA</label><input value=${p.cta || ""} onInput=${(e) => set("cta", e.target.value)} />
-          ${p.link_live && html`<label>Link</label><a href=${p.link_live} target="_blank" rel="noopener" style="word-break:break-all">${p.link_live}</a>`}
+          ${p.link_live && html`<label>Link</label><a class="btn small ghost" href=${p.link_live} target="_blank" rel="noopener">Apri su LinkedIn ↗</a>`}
           ${p.fonte && html`<label>Da dove nasce</label><p class="hint">${p.fonte}</p>`}
           <div class="row" style="margin-top:16px"><button class="btn primary smallall" onClick=${() => save()}>Salva</button></div>
         </div>
         ${p.metriche && Object.keys(p.metriche).length > 0 && html`<div class="card"><h3>Risultati</h3>${Object.entries(p.metriche).map(([k, v]) => html`<div class="check"><span style="flex:1;text-transform:capitalize">${k.replace(/_/g, " ")}</span><b>${v}</b></div>`)}</div>`}
-        <div class="card soft"><b>Vuoi cambiarlo con l'AI?</b><p class="hint" style="margin-top:6px">Apri la tua AI nella cartella di Nest Signal e scrivi, ad esempio: «nel post <i>${(p.titolo || "").slice(0, 40)}…</i> accorcia il testo e rendi l'hook più diretto».</p></div>
+        <${AskAI} st=${st} p=${p} reloadPost=${() => api(`/api/posts/${id}`).then(setP)} />
       </div>
     </div>
   </div>`;
