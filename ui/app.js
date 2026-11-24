@@ -142,21 +142,79 @@ function StepWelcome({ cfg, next }) {
   </div>`;
 }
 
-function StepAI({ st, draft, set, next }) {
+const LOGIN_LABEL = { claude: "Accedi con Claude", codex: "Accedi con ChatGPT", gemini: "Apri il Terminale" };
+
+// Installazione e accesso di una AI dal pannello: niente Terminale.
+function AISetup({ id, a, d, refresh }) {
+  const [sess, setSess] = useState(null);
+  const [code, setCode] = useState("");
+  const [err, setErr] = useState("");
+  const [term, setTerm] = useState(null);
+  const timer = useRef(null);
+  useEffect(() => () => clearInterval(timer.current), []);
+  const follow = (s) => {
+    setSess(s); clearInterval(timer.current);
+    timer.current = setInterval(async () => {
+      const n = await api("/api/ai/session/" + s.id).catch(() => null);
+      if (!n) return;
+      setSess(n);
+      if (n.status !== "in corso") { clearInterval(timer.current); refresh(); }
+    }, 1500);
+  };
+  const act = async (fn) => { setErr(""); try { await fn(); } catch (e) { setErr(e.message); } };
+  const doInstall = () => act(async () => follow(await post("/api/ai/install", { adapter: id })));
+  const doLogin = () => act(async () => {
+    if (!a.panel_login) { setTerm(await post("/api/ai/terminal", { adapter: id })); return; }
+    follow(await post("/api/ai/login", { adapter: id }));
+  });
+  const sendCode = () => act(async () => { setSess(await post("/api/ai/code", { id: sess.id, code })); setCode(""); });
+  const busy = sess?.status === "in corso";
+
+  if (!d?.installed) return html`<div class="ai-setup">
+    <p class="hint">Non è installata su questo computer.${a.auto_install ? " La installo io dentro la cartella di Nest Signal: niente permessi di amministratore, la togli cancellando la cartella." : ""}</p>
+    ${a.auto_install ? html`<button class="btn ghost small" disabled=${busy} onClick=${(e) => { e.preventDefault(); doInstall(); }}>${busy ? "Installo… (1-2 minuti)" : "Installa " + a.label}</button>`
+      : html`<p class="hint">Installala da <a href=${a.install} target="_blank" rel="noopener">${a.install}</a>, poi ricarica.</p>`}
+    ${sess?.status === "errore" && html`<details style="margin-top:8px" open><summary class="hint">L'installazione non è andata</summary><pre class="log">${sess.log}</pre></details>`}
+    ${err && html`<p class="hint" style="color:var(--err)">${err}</p>`}
+  </div>`;
+
+  if (d.loggedIn) return null;
+  return html`<div class="ai-setup">
+    <p class="hint">${a.login}</p>
+    ${a.plan && html`<p class="hint" style="margin-top:2px">${a.plan}</p>`}
+    <div class="row" style="margin-top:8px">
+      <button class="btn primary small" disabled=${busy} onClick=${(e) => { e.preventDefault(); doLogin(); }}>${busy ? "Aspetto che tu entri…" : LOGIN_LABEL[id] || "Accedi"}</button>
+      ${busy && sess?.url && html`<a class="btn ghost small" href=${sess.url} target="_blank" rel="noopener">Il browser non si è aperto? Apri la pagina di accesso</a>`}
+    </div>
+    ${busy && html`<div class="row" style="margin-top:10px">
+      <input style="flex:1" placeholder="Se la pagina ti dà un codice, incollalo qui" value=${code} onInput=${(e) => setCode(e.target.value)} />
+      <button class="btn ghost small" disabled=${!code.trim()} onClick=${(e) => { e.preventDefault(); sendCode(); }}>Invia codice</button>
+    </div>`}
+    ${sess?.status === "errore" && html`<details style="margin-top:8px"><summary class="hint">L'accesso non è andato: cosa è successo</summary><pre class="log">${sess.log}</pre></details>`}
+    ${term && html`<p class="hint" style="margin-top:8px">${term.opened ? "Ho aperto il Terminale con " : "Apri il Terminale e scrivi "}<span class="mono">${term.cmd}</span>. Quando hai finito, <a href="#" onClick=${(e) => { e.preventDefault(); refresh(); }}>controlla di nuovo</a>.</p>`}
+    ${err && html`<p class="hint" style="color:var(--err)">${err}</p>`}
+  </div>`;
+}
+
+function StepAI({ st, cfg, draft, set, next }) {
   const [det, setDet] = useState(null);
   const job = useJob();
-  useEffect(() => { api("/api/detect").then(setDet); }, []);
+  const refresh = () => api("/api/detect").then(setDet);
+  useEffect(() => { refresh(); }, []);
   const ok = job.run?.status === "ok" && /NEST SIGNAL OK/.test(job.log);
+  const ready = det && Object.values(det).some((d) => d.installed && d.loggedIn);
   return html`<div class="stack">
     <div class="kicker">Passo 2 · Motore</div>
     <h2>Quale AI fa il lavoro?</h2>
-    <p class="hint">Nest Signal non ha un'AI sua: usa quella che hai già, dal terminale. Il pannello la lancia agli orari dei moduli.</p>
+    <p class="hint">Nest Signal non ha un'AI sua: usa il tuo account Claude, ChatGPT o Google. Serve la versione che gira sul computer (non la chat nel browser): se non ce l'hai la installo io, poi entri col tuo account con un clic.</p>
     ${!det ? html`<p class="hint">Cerco le AI installate…</p>` : Object.entries(st.adapters).map(([id, a]) => {
       const d = det[id]; const on = draft.ai.adapter === id;
       return html`<label class=${"choice " + (on ? "on" : "")}>
         <input type="radio" name="ai" checked=${on} onChange=${() => set("ai.adapter", id)} />
-        <div style="flex:1"><b>${a.label}</b> ${id !== "custom" && (d?.installed ? html`<span class="pill ok">installata ${d.version}</span>` : html`<span class="pill">non trovata</span>`)}
-          ${id !== "custom" && !d?.installed && a.install && html`<p class="hint">Installala da <a href=${a.install} target="_blank" rel="noopener">${a.install}</a>, poi ricarica.</p>`}
+        <div style="flex:1"><b>${a.label}</b> ${id !== "custom" && (d?.installed
+            ? html`<span class="pill ok">installata</span> ${d.loggedIn ? html`<span class="pill ok">accesso fatto</span>` : d.loggedIn === false ? html`<span class="pill warn">accesso da fare</span>` : ""}`
+            : html`<span class="pill">non installata</span>`)}
+          ${id !== "custom" && on && html`<${AISetup} id=${id} a=${a} d=${d} refresh=${refresh} />`}
           ${id === "custom" && html`<p class="hint">Qualsiasi CLI che accetta un prompt. Scrivi il comando con <span class="mono">{prompt}</span> dove va il testo.</p>`}
           ${id === "custom" && on && html`<input placeholder="es. opencode run '{prompt}'" value=${draft.ai.custom_command} onInput=${(e) => set("ai.custom_command", e.target.value)} />`}
         </div></label>`;
@@ -170,7 +228,8 @@ function StepAI({ st, draft, set, next }) {
       ${ok && html`<span class="pill ok">funziona</span>`}
     </div>
     <${JobBox} job=${job} label="Prova dell'AI" />
-    ${job.run?.status && !job.busy && /not logged in|log ?in|login|unauthori[sz]ed|api key/i.test(job.log) && !ok && html`<div class="card" style="border:1.5px solid var(--accent)"><h3>L'AI non ha fatto l'accesso</h3><p class="hint">${st.adapters[draft.ai.adapter]?.login || "Fai il login nella tua AI dal terminale, poi riprova."}</p></div>`}
+    ${job.run?.status && !job.busy && /not logged in|log ?in|login|unauthori[sz]ed|api key/i.test(job.log) && !ok && html`<div class="card" style="border:1.5px solid var(--accent)"><h3>L'AI non ha fatto l'accesso</h3><p class="hint">${st.adapters[draft.ai.adapter]?.login || "Fai l'accesso alla tua AI, poi riprova."}</p></div>`}
+    ${det && !ready && !ok && html`<${NestCTA} cfg=${cfg} title="Non riesci a collegare la tua AI?" text="Te la configuriamo noi in una call di 30 minuti: AI, browser per LinkedIn e call registrate. Esci dalla call con Nest Signal già acceso." cta="Prenota il setup con Nest" />`}
     <div class="row" style="margin-top:22px"><button class="btn accent" onClick=${() => next({ ai: draft.ai })}>Continua →</button>${!ok && html`<span class="hint">Consigliato: prova prima il collegamento.</span>`}</div>
   </div>`;
 }
@@ -270,7 +329,7 @@ function StepICP({ cfg, draft, set, setDraft, next }) {
       <div><label>Problema ${i + 1}</label><input placeholder="es. Il follow-up dei lead" value=${p.name || ""} onInput=${(e) => setPain(i, "name", e.target.value)} /></div>
       <div><label>Come lo dice il cliente</label><input placeholder="«Il CRM lo aggiorno quando mi ricordo»" value=${p.mirror || ""} onInput=${(e) => setPain(i, "mirror", e.target.value)} /></div></div>
       <label>Cosa gli costa</label><input placeholder="ore, soldi, clienti persi…" value=${p.cost || ""} onInput=${(e) => setPain(i, "cost", e.target.value)} /></div>`)}
-    ${pains.length < 5 && html`<button class="btn ghost small" style="margin-top:10px" onClick=${() => set("audience.pains", [...pains, {}])}>+ Aggiungi un problema</button>`}
+    ${pains.length < 5 && html`<button class="btn ghost smallall" style="margin-top:10px" onClick=${() => set("audience.pains", [...pains, {}])}>+ Aggiungi un problema</button>`}
     <${NestCTA} cfg=${cfg} product="Sales Engine" title="Non hai chiaro il tuo ICP?" text="Il Sales Engine di Nest parte da lì: definiamo chi compra davvero e con quali parole, costruiamo le liste e l'outbound che portano call qualificate, e colleghiamo tutto al CRM." cta="Scopri il Sales Engine" />
     <div class="row" style="margin-top:22px"><button class="btn accent" disabled=${!a.icp || !pains.some((p) => p.name)} onClick=${async () => { await put("/api/data/pain-map.md", { content: painMd(pains) }); next({ audience: { ...a, pains } }); }}>Continua →</button></div>
   </div>`;
@@ -348,7 +407,7 @@ function StepCreative({ cfg, draft, set, setDraft, next }) {
         <button class="btn ghost" disabled=${!fb.trim() || job.busy} onClick=${() => build(fb.trim())}>Rifallo con questa nota</button></div>
     </div>`}
     <${NestCTA} cfg=${cfg} product="Design" title="Vuoi un template disegnato su misura?" text="Il designer di Nest può costruire con te un sistema visivo per i tuoi contenuti, che poi Nest Signal usa in automatico." cta="Parliamone" />
-    <div class="row" style="margin-top:12px"><button class="btn ghost small" onClick=${() => next({ creative: c })}>Salta per ora (le creatività restano spente)</button></div>
+    <div class="row" style="margin-top:12px"><button class="btn ghost smallall" onClick=${() => next({ creative: c })}>Salta per ora (le creatività restano spente)</button></div>
   </div>`;
 }
 
@@ -454,7 +513,7 @@ function Question() {
       <p style="font-size:17px;margin-top:12px">${q.domanda}</p>
       ${done ? html`<p class="hint" style="margin-top:10px">Grazie: diventa materiale per i prossimi post.</p>` : html`
         <textarea style="font-family:var(--sans);font-size:15px;min-height:96px;margin-top:12px" placeholder="Due righe, come le diresti a voce" value=${a} onInput=${(e) => setA(e.target.value)}></textarea>
-        <div class="row" style="margin-top:12px"><button class="btn primary small" disabled=${!a.trim()} onClick=${() => post("/api/answer", { domanda: q.domanda, risposta: a }).then(() => setDone(true))}>Rispondi</button></div>`}`}
+        <div class="row" style="margin-top:12px"><button class="btn primary smallall" disabled=${!a.trim()} onClick=${() => post("/api/answer", { domanda: q.domanda, risposta: a }).then(() => setDone(true))}>Rispondi</button></div>`}`}
   </div>`;
 }
 
@@ -675,7 +734,7 @@ function PostDetail({ id, st, back }) {
           <label>CTA</label><input value=${p.cta || ""} onInput=${(e) => set("cta", e.target.value)} />
           ${p.link_live && html`<label>Link</label><a href=${p.link_live} target="_blank" rel="noopener">${p.link_live}</a>`}
           ${p.fonte && html`<label>Da dove nasce</label><p class="hint">${p.fonte}</p>`}
-          <div class="row" style="margin-top:16px"><button class="btn primary small" onClick=${() => save()}>Salva</button></div>
+          <div class="row" style="margin-top:16px"><button class="btn primary smallall" onClick=${() => save()}>Salva</button></div>
         </div>
         ${p.metriche && Object.keys(p.metriche).length > 0 && html`<div class="card"><h3>Risultati</h3>${Object.entries(p.metriche).map(([k, v]) => html`<div class="check"><span style="flex:1;text-transform:capitalize">${k.replace(/_/g, " ")}</span><b>${v}</b></div>`)}</div>`}
         <div class="card soft"><b>Vuoi cambiarlo con l'AI?</b><p class="hint" style="margin-top:6px">Apri la tua AI nella cartella di Nest Signal e scrivi, ad esempio: «nel post <i>${(p.titolo || "").slice(0, 40)}…</i> accorcia il testo e rendi l'hook più diretto».</p></div>

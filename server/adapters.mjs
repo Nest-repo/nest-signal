@@ -2,7 +2,27 @@
 // leggere file ed eseguire istruzioni da riga di comando può fare da motore.
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { PKG } from "./store.mjs";
 const run = promisify(execFile);
+
+// Dove cerchiamo le CLI: l'installazione locale di Nest Signal (.ai/) e i posti dove finiscono di solito,
+// anche quando non sono nel PATH (es. ~/.local/bin dell'installer di Claude Code o dell'app desktop).
+export const AI_DIR = path.join(PKG, ".ai");
+const EXTRA_BIN = [
+  path.join(AI_DIR, "node_modules", ".bin"),
+  path.join(os.homedir(), ".local", "bin"),
+  path.join(os.homedir(), ".npm-global", "bin"),
+  path.join(os.homedir(), ".claude", "local"),
+  "/opt/homebrew/bin", "/usr/local/bin",
+  path.dirname(process.execPath),
+];
+{
+  const cur = (process.env.PATH || "").split(path.delimiter);
+  process.env.PATH = [...EXTRA_BIN.filter((d) => !cur.includes(d)), ...cur].join(path.delimiter);
+}
 
 export const ADAPTERS = {
   claude: {
@@ -13,7 +33,10 @@ export const ADAPTERS = {
     args: (prompt, { pkg, data, unattended }) => ["-p", prompt, "--add-dir", pkg, "--add-dir", data, "--output-format", "text",
       ...(unattended ? ["--dangerously-skip-permissions"] : ["--permission-mode", "acceptEdits"])],
     mcpList: ["mcp", "list"],
-    login: "Apri il Terminale, scrivi claude e poi /login (serve un abbonamento Claude o una chiave API). Poi riprova.",
+    npm: "@anthropic-ai/claude-code",
+    loginArgs: ["auth", "login"],
+    plan: "Serve un abbonamento Claude Pro, Max o superiore (il piano gratuito non include Claude Code).",
+    login: "Premi «Accedi con Claude»: si apre il browser, entri col tuo account Claude e torni qui.",
   },
   codex: {
     label: "OpenAI Codex CLI",
@@ -21,7 +44,10 @@ export const ADAPTERS = {
     install: "https://github.com/openai/codex",
     args: (prompt, { unattended }) => ["exec", ...(unattended ? ["--full-auto"] : []), prompt],
     mcpList: ["mcp", "list"],
-    login: "Apri il Terminale e scrivi codex login. Poi riprova.",
+    npm: "@openai/codex",
+    loginArgs: ["login"],
+    plan: "Basta un account ChatGPT: i limiti d'uso dipendono dal piano (più alti con Plus o Pro).",
+    login: "Premi «Accedi con ChatGPT»: si apre il browser, entri col tuo account ChatGPT e torni qui.",
   },
   gemini: {
     label: "Gemini CLI",
@@ -29,7 +55,11 @@ export const ADAPTERS = {
     install: "https://github.com/google-gemini/gemini-cli",
     args: (prompt, { unattended }) => ["-p", prompt, ...(unattended ? ["--yolo"] : [])],
     mcpList: ["mcp", "list"],
-    login: "Apri il Terminale e scrivi gemini per fare il login. Poi riprova.",
+    npm: "@google/gemini-cli",
+    loginArgs: null,
+    terminalCmd: "gemini",
+    plan: "Basta un account Google personale (gratuito, con limiti giornalieri).",
+    login: "Premi «Apri il Terminale»: scegli «Login with Google», entra col tuo account e chiudi con /quit. Poi torna qui.",
   },
   custom: {
     label: "Comando personalizzato",
@@ -47,12 +77,37 @@ export async function detect() {
       const { stdout } = await run("/usr/bin/env", ["which", a.bin], { env: process.env });
       let version = "";
       try { version = (await run(a.bin, ["--version"], { timeout: 15000 })).stdout.trim().split("\n")[0]; } catch {}
-      out[id] = { installed: true, path: stdout.trim(), version };
+      out[id] = { installed: true, path: stdout.trim(), version, loggedIn: await loggedIn(id) };
     } catch {
       out[id] = { installed: false };
     }
   }
   return out;
+}
+
+// L'AI ha già fatto l'accesso? (true / false / null = non lo sappiamo dire)
+async function loggedIn(id) {
+  try {
+    if (id === "claude") {
+      if (process.env.ANTHROPIC_API_KEY) return true;
+      const { stdout } = await run("claude", ["auth", "status"], { timeout: 15000 });
+      return !!JSON.parse(stdout).loggedIn;
+    }
+    if (id === "codex") {
+      if (process.env.OPENAI_API_KEY) return true;
+      await run("codex", ["login", "status"], { timeout: 15000 });
+      return true;
+    }
+    if (id === "gemini") {
+      if (process.env.GEMINI_API_KEY) return true;
+      return fs.existsSync(path.join(os.homedir(), ".gemini", "oauth_creds.json"));
+    }
+  } catch (e) {
+    if (id === "codex") return false;
+    if (id === "claude" && /loggedIn/.test(String(e.stdout || ""))) return false;
+    return id === "claude" ? false : null;
+  }
+  return null;
 }
 
 // Elenco dei server MCP configurati nell'AI scelta (browser, Slack, meeting...). Testo grezzo: lo interpreta il pannello.

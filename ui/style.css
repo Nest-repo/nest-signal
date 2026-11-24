@@ -177,3 +177,4 @@ code.cmd { display: block; background: var(--g50); border: 1px solid var(--line)
 .cal-n { font-size: 13px; color: var(--g500); }
 .cal-p { display: block; font-size: 12.5px; line-height: 1.3; padding: 6px 8px; border-radius: var(--r-sm); background: var(--g100); color: var(--g900); text-decoration: none; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .cal-p.run { background: var(--lime-s); } .cal-p.ok { background: var(--ok-s); color: var(--ok); } .cal-p.warn { background: var(--warn-s); }
+.ai-setup { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line, rgba(0,0,0,.08)); }

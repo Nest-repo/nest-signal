@@ -6,6 +6,7 @@ import { spawn } from "node:child_process";
 import { PKG, HOME, DATA, loadConfig, saveConfig, readData, writeData, readFeed, EDITABLE } from "./store.mjs";
 import { MODULES, SETUP_JOBS, moduleSettings } from "./modules.mjs";
 import { ADAPTERS, detect, mcpServers } from "./adapters.mjs";
+import { install as aiInstall, login as aiLogin, sendCode as aiCode, session as aiSession, openTerminal } from "./ai-setup.mjs";
 import { enqueue, runs, runLog, recover } from "./runner.mjs";
 import { reschedule, nextRuns } from "./scheduler.mjs";
 import { listPosts, getPost, createPost, updatePost, STATI, FUNNEL } from "./posts.mjs";
@@ -43,7 +44,7 @@ function status() {
   const all = runs(200);
   return {
     config: cfg, home: HOME, data: DATA,
-    adapters: Object.fromEntries(Object.entries(ADAPTERS).map(([k, a]) => [k, { label: a.label, install: a.install, login: a.login || "" }])),
+    adapters: Object.fromEntries(Object.entries(ADAPTERS).map(([k, a]) => [k, { label: a.label, install: a.install, login: a.login || "", plan: a.plan || "", auto_install: !!a.npm, panel_login: !!a.loginArgs }])),
     modules: moduleSettings(cfg).map((m) => ({ ...m, next_run: nr[m.id] || null, last_run: all.find((r) => r.target === m.id) || null })),
     setup_jobs: SETUP_JOBS,
     running: all.filter((r) => r.status === "in corso" || r.status === "in coda"),
@@ -53,6 +54,10 @@ function status() {
 const routes = {
   "GET /api/status": async () => status(),
   "GET /api/detect": async () => detect(),
+  "POST /api/ai/install": async (b) => aiInstall(b.adapter),
+  "POST /api/ai/login": async (b) => aiLogin(b.adapter),
+  "POST /api/ai/code": async (b) => aiCode(b.id, b.code),
+  "POST /api/ai/terminal": async (b) => openTerminal(b.adapter),
   "GET /api/mcp": async () => mcpServers(loadConfig().ai.adapter),
   "POST /api/config": async (b) => { const c = saveConfig(b); reschedule(); return c; },
   "GET /api/runs": async () => runs(),
@@ -118,6 +123,7 @@ const server = http.createServer(async (req, res) => {
       if (routes[key]) return send(res, 200, await routes[key](req.method === "GET" ? null : await readBody(req)));
       let m;
       if (req.method === "GET" && (m = /^\/api\/runs\/([a-z0-9-]+)\/log$/.exec(url.pathname))) return send(res, 200, { log: runLog(m[1]) });
+      if (req.method === "GET" && (m = /^\/api\/ai\/session\/([a-z0-9-]+)$/.exec(url.pathname))) return send(res, 200, aiSession(m[1]));
       if ((m = /^\/api\/data\/([a-z-]+\.md)$/.exec(url.pathname)) && EDITABLE.includes(m[1])) {
         if (req.method === "GET") return send(res, 200, { name: m[1], content: readData(m[1]) });
         if (req.method === "PUT") { writeData(m[1], (await readBody(req)).content || ""); return send(res, 200, { ok: true }); }

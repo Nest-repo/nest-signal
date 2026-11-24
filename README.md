@@ -33,7 +33,7 @@ Un pannello locale (stile [Paperclip](https://github.com/paperclipai/paperclip))
 ## Requisiti
 
 - **Node.js 20+**
-- **Una AI da terminale**, con login fatto: [Claude Code](https://docs.claude.com/en/docs/claude-code) (consigliato), [Codex CLI](https://github.com/openai/codex) o [Gemini CLI](https://github.com/google-gemini/gemini-cli)
+- **Un account AI**: Claude (Pro, Max o superiore), ChatGPT (anche gratuito, con limiti più bassi) o Google per Gemini. Non serve la chat nel browser: l'onboarding installa la versione da terminale ([Claude Code](https://docs.claude.com/en/docs/claude-code), [Codex CLI](https://github.com/openai/codex) o [Gemini CLI](https://github.com/google-gemini/gemini-cli)) dentro la cartella `.ai/` e ti fa entrare col tuo account con un clic, senza Terminale
 - **Browser per LinkedIn**: [Playwright MCP](https://github.com/microsoft/playwright-mcp) con un profilo dedicato (te lo configura l'onboarding) e `npm install playwright` per il login
 - **Python 3** per le creatività (usa Playwright per Python se c'è, altrimenti quello di Node)
 
