@@ -234,3 +234,53 @@ code.cmd { display: block; background: var(--bg-sunken); border: 1px solid var(-
 .comp .mini span { min-height: 28px; }
 .ob-main .kicker + h2 { font-size: 28px; line-height: 36px; letter-spacing: -.02em; margin-top: 4px; }
 .ob-main .kicker + h2 + p { margin-top: 8px; }
+
+/* ---- Pattern Nitido con il design system Nest ---- */
+/* metrica con contesto: valore + unità + confronto + frase */
+.kpi .kv { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.kpi .unit { font-size: 12px; color: var(--text-subtle); }
+.kpi small .delta { font-weight: 500; margin-right: 4px; }
+.delta.up { color: var(--ok); } .delta.down { color: var(--err); }
+.kpis.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 900px) { .kpis.four { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* testata di sezione: titolo a sinistra, azioni o totale a destra */
+.shead { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.card > .shead + * { margin-top: 12px; }
+.shead .total { display: flex; align-items: baseline; gap: 6px; }
+.shead .total b { font-size: 22px; line-height: 28px; font-weight: 500; letter-spacing: -.01em; }
+.shead .total small { font-size: 12px; color: var(--text-subtle); }
+/* banner informativo (fondo tenue + titolo + righe) */
+.banner { background: var(--bg-selected); border: 1px solid var(--line-selected); border-radius: var(--r-lg); padding: 16px 20px; margin-bottom: 20px; }
+.banner.warn { background: var(--warn-s); border-color: #EFD9A6; }
+.banner.err { background: var(--err-s); border-color: #F5C9C3; }
+.banner.ok { background: var(--ok-s); border-color: #D3E8BC; }
+.banner h3 { font-size: 16px; }
+.banner p, .banner .hint { color: var(--g700); }
+.blist { margin: 8px 0 0; padding-left: 18px; font-size: 14px; line-height: 22px; color: var(--g700); }
+.blist b { font-weight: 500; color: var(--text); }
+/* nota dentro una riga (es. modulo fermo) */
+.inline-note { margin-top: 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 8px 8px 12px; border-radius: var(--r-md); font-size: 13px; line-height: 18px; }
+.inline-note.warn { background: var(--warn-s); color: var(--warn); } .inline-note.err { background: var(--err-s); color: var(--err); }
+/* stato vuoto */
+.empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 28px 16px; }
+.empty .eicon { width: 40px; height: 40px; border-radius: 50%; background: var(--bg-sunken); display: grid; place-items: center; color: var(--text-subtle); margin-bottom: 4px; }
+.empty b { font-weight: 500; font-size: 15px; } .empty .hint { max-width: 360px; }
+.colempty { font-size: 13px; line-height: 18px; color: var(--text-subtle); padding: 8px 6px; }
+/* storico a righe con orario (pattern "Riga versione") */
+.tgroup + .tgroup { margin-top: 20px; }
+.card.tl { padding: 4px 20px; }
+.trow { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line-subtle); }
+.trow:last-child { border-bottom: 0; }
+.trow b { font-weight: 500; }
+.ttime { font-size: 14px; font-variant-numeric: tabular-nums; display: flex; flex-direction: column; }
+.ttime small { font-size: 12px; color: var(--text-subtle); }
+/* toast */
+.toasts { position: fixed; right: 20px; bottom: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 50; }
+.toast { display: flex; align-items: center; gap: 10px; background: var(--ink); color: var(--cream); border-radius: var(--r-md); padding: 10px 14px; font-size: 14px; line-height: 20px; box-shadow: var(--sh-sm); max-width: 380px; animation: tin .18s ease-out; }
+.toast .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--lime); flex: none; }
+.toast.err .dot { background: #F97066; } .toast.info .dot { background: #84CAFF; }
+@keyframes tin { from { transform: translateY(6px); opacity: 0; } to { transform: none; opacity: 1; } }
+/* modale */
+.veil { position: fixed; inset: 0; background: rgba(26, 31, 10, .32); display: grid; place-items: center; z-index: 40; padding: 20px; }
+.modal { background: var(--bg-raised); border-radius: var(--r-xl); padding: 24px; width: min(440px, 100%); box-shadow: 0 16px 32px -8px rgba(26, 31, 10, .18), 0 8px 20px -4px rgba(26, 31, 10, .10); }
+.btn.danger { background: var(--err); border-color: var(--err); color: #fff; } .btn.danger:hover { background: #912018; }

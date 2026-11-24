@@ -11,6 +11,19 @@ function jsonl(name) {
   return fs.readFileSync(p, "utf8").split("\n").filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
 }
 
+// periodo precedente della stessa durata, per dare contesto ai numeri (es. "+12% rispetto ai 30 giorni prima")
+function prevKpi(days, minImpr, w) {
+  if (!(days > 0)) return null;
+  const from = new Date(Date.now() - 2 * days * 864e5).toISOString().slice(0, 10);
+  const to = new Date(Date.now() - days * 864e5).toISOString().slice(0, 10);
+  const rows = listPosts().filter((p) => p.stato === "Pubblicato" && (p.data || "") >= from && (p.data || "") < to).map((p) => p.metriche || {});
+  if (!rows.length) return null;
+  const s = (k) => rows.reduce((a, m) => a + num(m[k]), 0);
+  const impr = s("impressioni");
+  const convs = rows.filter((m) => num(m.impressioni) >= minImpr).map((m) => ((num(m.follower_acquisiti) * w.followers + num(m.visite_profilo) * w.profile_visits + num(m.commenti) * w.comments + num(m.lead) * w.leads) / num(m.impressioni)) * 1000);
+  return { pubblicati: rows.length, impressioni: impr, follower: s("follower_acquisiti"), visite: s("visite_profilo"), commenti: s("commenti"), lead: s("lead"), conv_media: convs.length ? +(convs.reduce((a, b) => a + b, 0) / convs.length).toFixed(1) : null };
+}
+
 export function analytics({ days = 90 } = {}) {
   const cfg = loadConfig();
   const w = { followers: 3, profile_visits: 1, comments: 2, leads: 25, ...(cfg.performance?.conversion_weights || {}) };
@@ -57,7 +70,7 @@ export function analytics({ days = 90 } = {}) {
     .map((l) => ({ ...l, post_titolo: rows.find((r) => r.id === l.post_id)?.titolo || "" }));
 
   return {
-    days, kpi, posts: rows,
+    days, kpi, kpi_prev: prevKpi(days, minImpr, w), posts: rows,
     top_conv: [...rows].filter((r) => r.conv !== null).sort((a, b) => b.conv - a.conv).slice(0, 5),
     top_reach: [...rows].sort((a, b) => b.impressioni - a.impressioni).slice(0, 5),
     per_funzione: group("funnel"), per_pattern: group("pattern"),

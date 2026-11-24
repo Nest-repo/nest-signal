@@ -96,6 +96,58 @@ function KBFill({ cfg, draft, page, apply, label }) {
 
 const fillEmpty = (cur, inc) => { const o = { ...cur }; for (const [k, v] of Object.entries(inc || {})) if (v && (!o[k] || (Array.isArray(o[k]) && !o[k].length))) o[k] = v; return o; };
 
+// ---------- KIT UI (pattern Nitido: ogni stato disegnato, niente popup del browser) ----------
+// Toast: conferme brevi in basso a destra.
+const toastBus = new EventTarget();
+const toast = (text, tone = "ok") => toastBus.dispatchEvent(new CustomEvent("t", { detail: { id: Math.random(), text, tone } }));
+function Toasts() {
+  const [list, setList] = useState([]);
+  useEffect(() => {
+    const f = (e) => { setList((l) => [...l, e.detail]); setTimeout(() => setList((l) => l.filter((x) => x.id !== e.detail.id)), 4200); };
+    toastBus.addEventListener("t", f); return () => toastBus.removeEventListener("t", f);
+  }, []);
+  return html`<div class="toasts" role="status" aria-live="polite">${list.map((t) => html`<div class=${"toast " + t.tone}><span class="dot"></span>${t.text}</div>`)}</div>`;
+}
+// Modale di conferma (o con un campo): ask({title, text, ok, tone, input}) → Promise<valore | null>
+const modalBus = new EventTarget();
+const ask = (opts) => new Promise((resolve) => modalBus.dispatchEvent(new CustomEvent("m", { detail: { ...opts, resolve } })));
+function Modal() {
+  const [m, setM] = useState(null); const [val, setVal] = useState("");
+  useEffect(() => { const f = (e) => { setM(e.detail); setVal(e.detail.input?.value || ""); }; modalBus.addEventListener("m", f); return () => modalBus.removeEventListener("m", f); }, []);
+  useEffect(() => { if (!m) return; const k = (e) => { if (e.key === "Escape") close(null); }; addEventListener("keydown", k); return () => removeEventListener("keydown", k); }, [m]);
+  if (!m) return null;
+  const close = (v) => { m.resolve(v); setM(null); };
+  return html`<div class="veil" onClick=${(e) => e.target === e.currentTarget && close(null)}>
+    <div class="modal" role="dialog" aria-modal="true" aria-label=${m.title}>
+      <h3>${m.title}</h3>
+      ${m.text && html`<p class="hint" style="margin-top:8px">${m.text}</p>`}
+      ${m.input && html`<input autofocus style="margin-top:14px" placeholder=${m.input.placeholder || ""} value=${val} onInput=${(e) => setVal(e.target.value)} onKeyDown=${(e) => e.key === "Enter" && val.trim() && close(val.trim())} />`}
+      <div class="row" style="justify-content:flex-end;margin-top:20px">
+        <button class="btn ghost" onClick=${() => close(null)}>${m.cancel || "Annulla"}</button>
+        <button class=${"btn " + (m.tone === "danger" ? "danger" : "primary")} disabled=${m.input && !val.trim()} onClick=${() => close(m.input ? val.trim() : true)}>${m.ok || "Conferma"}</button>
+      </div>
+    </div>
+  </div>`;
+}
+// Stato vuoto: icona, titolo, una riga e (se serve) l'azione.
+function Empty({ icon = "log", title, text, children }) {
+  return html`<div class="empty"><span class="eicon">${I(icon)}</span><b>${title}</b>${text && html`<p class="hint">${text}</p>`}${children && html`<div class="row" style="justify-content:center;margin-top:12px">${children}</div>`}</div>`;
+}
+// Metrica con contesto (pattern Nitido "Metrica"): etichetta → valore → unità → confronto → frase che lo spiega.
+function Metric({ label, value, unit, prev, note, main, invert }) {
+  let delta = null;
+  if (prev != null && value != null && prev !== 0) {
+    const d = Math.round(((value - prev) / Math.abs(prev)) * 100);
+    const good = invert ? d < 0 : d > 0;
+    delta = html`<span class=${"delta " + (d === 0 ? "" : good ? "up" : "down")}>${d > 0 ? "▲" : d < 0 ? "▼" : "="} ${Math.abs(d)}%</span>`;
+  }
+  return html`<div class=${"kpi" + (main ? " main" : "")}>
+    <span>${label}</span>
+    <div class="kv"><b>${value == null ? "—" : fmt(value)}</b>${unit && html`<small class="unit">${unit}</small>`}</div>
+    ${(delta || note) && html`<small>${delta} ${note || ""}</small>`}
+  </div>`;
+}
+
 // ---------- ONBOARDING ----------
 const STEPS = ["Benvenuto", "La tua AI", "Chi sei", "Connessioni", "ICP e target", "Come comunichi", "Creatività", "Moduli e orari", "Si parte"];
 
@@ -231,7 +283,7 @@ function StepAI({ st, cfg, draft, set, next }) {
       ${ok && html`<span class="pill ok">funziona</span>`}
     </div>
     <${JobBox} job=${job} label="Prova dell'AI" />
-    ${job.run?.status && !job.busy && /not logged in|log ?in|login|unauthori[sz]ed|api key/i.test(job.log) && !ok && html`<div class="card" style="border:1.5px solid var(--accent)"><h3>L'AI non ha fatto l'accesso</h3><p class="hint">${st.adapters[draft.ai.adapter]?.login || "Fai l'accesso alla tua AI, poi riprova."}</p></div>`}
+    ${job.run?.status && !job.busy && /not logged in|log ?in|login|unauthori[sz]ed|api key/i.test(job.log) && !ok && html`<div class="banner err"><h3>L'AI non ha fatto l'accesso</h3><p class="hint">${st.adapters[draft.ai.adapter]?.login || "Fai l'accesso alla tua AI, poi riprova."}</p></div>`}
     ${det && !ready && !ok && html`<${NestCTA} cfg=${cfg} title="Non riesci a collegare la tua AI?" text="Te la configuriamo noi in una call di 30 minuti: AI, browser per LinkedIn e call registrate. Esci dalla call con Nest Signal già acceso." cta="Prenota il setup con Nest" />`}
     <div class="row" style="margin-top:22px"><button class="btn accent" onClick=${() => next({ ai: draft.ai })}>Continua →</button>${!ok && html`<span class="hint">Consigliato: prova prima il collegamento.</span>`}</div>
   </div>`;
@@ -285,7 +337,7 @@ function StepConnections({ st, cfg, draft, set, next }) {
     <p class="hint">Tutti i tuoi dati restano in una cartella sul tuo computer (workspace/). All'AI servono solo il browser per LinkedIn e, se vuoi, Slack. Copia i comandi nel terminale, poi verifica.</p>
     ${cmds.map(([t, c, n]) => html`<div class="card"><h3>${t}</h3><code class="cmd">${c}</code>${n && html`<p class="hint">${n}</p>`}</div>`)}
     <div class="row"><button class="btn ghost" onClick=${check}>Verifica connessioni</button>
-      <button class="btn ghost" onClick=${() => post("/api/browser-login").then(() => alert("Si apre una finestra del browser di Nest Signal: fai login a LinkedIn e poi chiudila."))}>Apri il browser e fai login a LinkedIn</button></div>
+      <button class="btn ghost" onClick=${() => post("/api/browser-login").then(() => toast("Si apre una finestra del browser di Nest Signal: fai login a LinkedIn e poi chiudila.", "info"))}>Apri il browser e fai login a LinkedIn</button></div>
     ${mcp && html`<div class="card">${[["playwright", "Browser"], ["slack", "Slack"]].map(([n, l]) => html`<div class="check"><span class=${"s " + (has(n) ? "ok" : "no")}>${has(n) ? "✓" : "!"}</span><b style="font-weight:500">${l}</b><span class="hint">${has(n) ? "collegato" : n === "playwright" ? "non trovato" : "facoltativo"}</span></div>`)}
       <details><summary class="hint">Risposta completa</summary><pre class="log">${mcp.text}</pre></details></div>`}
 
@@ -370,9 +422,9 @@ function StepCreative({ cfg, draft, set, setDraft, next }) {
   const upload = async (files) => {
     setUp(true);
     for (const f of files) {
-      if (f.size > 5.5e6) { alert(`${f.name}: massimo 5 MB per file`); continue; }
+      if (f.size > 5.5e6) { toast(`${f.name}: massimo 5 MB per file`, "err"); continue; }
       const dataUrl = await new Promise((ok) => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(f); });
-      await post("/api/references", { name: f.name, dataUrl }).catch((e) => alert(`${f.name}: ${e.message}`));
+      await post("/api/references", { name: f.name, dataUrl }).catch((e) => toast(`${f.name}: ${e.message}`, "err"));
     }
     setUp(false); loadRefs();
   };
@@ -514,36 +566,83 @@ function Question() {
   </div>`;
 }
 
+// Salute dei moduli: cosa manca e dove si sistema (dati da /api/health).
+const NEED_FIX = { ai: 1, browser: 3, meetings: 3, icp: 4 };
+function useHealth() {
+  const [h, setH] = useState(null);
+  useEffect(() => { api("/api/health").then(setH).catch(() => {}); const t = setInterval(() => api("/api/health").then(setH).catch(() => {}), 60000); return () => clearInterval(t); }, []);
+  return h;
+}
+const reopenStep = async (step) => { await post("/api/config", { onboarding: { done: false, step } }); location.hash = "#/onboarding"; location.reload(); };
+function FixButton({ need }) {
+  const n = { ai: "Collega l'AI", browser: "Collega il browser", linkedin: "Fai il login a LinkedIn", meetings: "Collega le call", icp: "Definisci l'ICP", python: "Come installarlo" }[need];
+  if (need === "linkedin") return html`<button class="btn small" onClick=${() => post("/api/browser-login").then(() => toast("Si apre il browser di Nest Signal: fai login a LinkedIn e chiudilo", "info"))}>${n}</button>`;
+  if (need === "python") return html`<a class="btn small ghost" href="https://www.python.org/downloads/" target="_blank" rel="noopener">${n} ↗</a>`;
+  return NEED_FIX[need] != null ? html`<button class="btn small" onClick=${() => reopenStep(NEED_FIX[need])}>${n}</button>` : null;
+}
+function HealthBanner({ st, h }) {
+  if (!h) return null;
+  const bad = Object.entries(h.modules).filter(([, m]) => m.enabled && (m.level === "bloccato" || m.level === "parziale"));
+  if (!bad.length) return null;
+  const needs = [...new Set(bad.flatMap(([, m]) => m.missing))];
+  const causes = needs.map((n) => [n, bad.filter(([, m]) => m.missing.includes(n)).map(([id]) => id)]);
+  const other = bad.filter(([, m]) => !m.missing.length);
+  const blocked = bad.filter(([, m]) => m.level === "bloccato").length;
+  return html`<div class=${"banner " + (blocked ? "err" : "warn")}>
+    <div class="row" style="justify-content:space-between;align-items:flex-start">
+      <div style="min-width:0;flex:1 1 320px">
+        <h3>${bad.length === 1 ? "1 routine non lavora al pieno" : `${bad.length} routine non lavorano al pieno`}</h3>
+        <ul class="blist">${causes.map(([need, ids]) => html`<li><b>${h.needs[need]?.missing || need}</b> · ${ids.map((id) => jobName(st, id)).join(", ")} ${ids.some((id) => h.modules[id].level === "bloccato") ? (ids.length > 1 ? "sono ferme" : "è ferma") : (ids.length > 1 ? "lavorano a metà" : "lavora a metà")}</li>`)}${other.map(([id, m]) => html`<li><b>${jobName(st, id)}</b> · ${m.note || "l'ultimo giro non è andato: apri il log"}</li>`)}</ul>
+      </div>
+      <div class="row">${needs.map((n) => html`<${FixButton} need=${n} />`)}<a class="btn small ghost" href="#/moduli">Vedi i moduli</a></div>
+    </div>
+  </div>`;
+}
+
 function Today({ st }) {
-  const [feed, setFeed] = useState(null);
-  useEffect(() => { api("/api/feed").then(setFeed); }, []);
+  const [feed, setFeed] = useState(null); const [posts, setPosts] = useState(null); const [an, setAn] = useState(null);
+  const h = useHealth();
+  useEffect(() => { api("/api/feed").then(setFeed); api("/api/posts").then((d) => setPosts(d.posts)); api("/api/analytics?days=30").then(setAn).catch(() => {}); }, []);
   const next = [...st.modules].filter((m) => m.enabled && m.next_run).sort((a, b) => a.next_run.localeCompare(b.next_run));
   const first = st.config.owner.name.split(" ")[0] || "";
+  const today = new Date().toISOString().slice(0, 10), in7 = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
+  const toApprove = (posts || []).filter((p) => ["Bozza", "In revisione"].includes(p.stato));
+  const week = (posts || []).filter((p) => p.stato === "Da pubblicare" && p.data >= today && p.data <= in7);
+  const late = (posts || []).filter((p) => p.stato === "Da pubblicare" && p.data && p.data < today);
   return html`<div>
     <${Hero} kicker="Oggi" title=${html`Ciao ${first}, <em>ecco cosa c'è da guardare.</em>`} text="Le bozze arrivano nel Piano editoriale con la loro immagine: tu approvi e pubblichi.">
       ${next[0] && html`<span class="chip">${I("orologio")} prossimo: ${next[0].name} · ${when(next[0].next_run)}</span>`}
       <a class="btn primary" href="#/piano">Apri il Piano editoriale ${I("freccia")}</a>
     <//>
+    <${HealthBanner} st=${st} h=${h} />
+    ${posts && html`<div class="kpis four" style="margin-bottom:20px">
+      <${Metric} label="Da approvare" value=${toApprove.length} note=${toApprove.length ? "bozze pronte da leggere" : "niente in attesa"} />
+      <${Metric} label="In uscita in 7 giorni" value=${week.length} note=${late.length ? `${late.length} in ritardo sulla data` : week.length ? "approvati, da pubblicare" : "nessun post approvato"} />
+      <${Metric} label="Lead · 30 giorni" value=${an?.kpi?.lead ?? 0} prev=${an?.kpi_prev?.lead} note=${an?.kpi_prev ? "rispetto ai 30 giorni prima" : "dai post misurati"} />
+      <${Metric} label="Follower · 30 giorni" value=${an?.kpi?.follower ?? 0} prev=${an?.kpi_prev?.follower} note=${an?.kpi_prev ? "rispetto ai 30 giorni prima" : "dai post misurati"} />
+    </div>`}
     <div class="cols">
       <div class="card">
-        <h3>Cosa ha fatto il sistema</h3>
-        ${!feed ? html`<p class="hint">Carico…</p>` : !feed.length ? html`<p class="hint">Ancora niente: il primo giro del content engine scrive qui le bozze nuove.</p>` : html`<div>
+        <div class="shead"><h3>Cosa ha fatto il sistema</h3><a class="btn small ghost" href="#/attivita">Tutta l'attività</a></div>
+        ${!feed ? html`<p class="hint">Carico…</p>` : !feed.length ? html`<${Empty} icon="attivita" title="Ancora niente" text="Al primo giro il content engine scrive qui le bozze nuove, con la loro immagine." />` : html`<div>
           ${feed.map((f) => html`<div class="feed-item">
-            <div><b style="font-weight:500">${f.titolo || f.title}</b><div class="row" style="margin-top:6px"><span class="pill">${f.tipo || f.type}</span><span class="when">${jobName(st, f.modulo || f.module)} · ${when(f.ts)}</span></div>
+            <div style="min-width:0"><b style="font-weight:500">${f.titolo || f.title}</b><div class="row" style="margin-top:6px"><span class="pill">${f.tipo || f.type}</span><span class="when">${jobName(st, f.modulo || f.module)} · ${when(f.ts)}</span></div>
               ${f.immagine && html`<a href=${"/creative-img?p=" + encodeURIComponent(f.immagine)} target="_blank"><img onError=${(e) => (e.currentTarget.parentNode.style.display = "none")} src=${"/creative-img?p=" + encodeURIComponent(f.immagine)} style="width:150px;border-radius:10px;margin-top:10px;border:1px solid var(--line)" /></a>`}</div>
             ${f.link && html`<a class="btn small ghost" href=${f.link} target=${f.link.startsWith("http") ? "_blank" : undefined} rel="noopener">Apri</a>`}</div>`)}</div>`}
       </div>
       <div class="stack" style="margin:0">
         <${Question} />
         <div class="card"><h3>${I("calendario")} Prossimi giri</h3>
-          ${next.length ? html`<div>${next.slice(0, 6).map((m) => html`<div class="check"><span style="flex:1">${m.name}</span><span class="hint">${when(m.next_run)}</span></div>`)}</div>` : html`<p class="hint">Nessun modulo attivo.</p>`}</div>
+          ${next.length ? html`<div>${next.slice(0, 6).map((m) => html`<div class="check"><span style="flex:1">${m.name}</span>${h?.modules?.[m.id] && ["bloccato", "parziale"].includes(h.modules[m.id].level) && html`<span class=${"pill " + (h.modules[m.id].level === "bloccato" ? "err" : "warn")}>${h.modules[m.id].level === "bloccato" ? "fermo" : "a metà"}</span>`}<span class="hint">${when(m.next_run)}</span></div>`)}</div>` : html`<${Empty} icon="moduli" title="Nessun modulo attivo" text="Accendili dalla pagina Moduli." />`}</div>
       </div>
     </div>
   </div>`;
 }
 
+const LEVEL = { ok: ["ok", "funziona"], mai: ["", "mai partito"], parziale: ["warn", "a metà"], bloccato: ["err", "fermo"] };
 function Modules({ st, reload }) {
   const [logFor, setLogFor] = useState(null); const [log, setLog] = useState("");
+  const h = useHealth();
   const save = async (id, patch) => { await post("/api/config", { modules: { [id]: patch } }); reload(); };
   const showLog = async (r) => { setLogFor(r); setLog((await api(`/api/runs/${r.id}/log`)).log); };
   const on = st.modules.filter((m) => m.enabled).length;
@@ -554,8 +653,12 @@ function Modules({ st, reload }) {
     ${logFor && html`<div class="card" style="margin-bottom:16px"><div class="row" style="justify-content:space-between"><h3>${I("log")} ${logFor.target} ${pill(logFor.status)}</h3><button class="btn small ghost" onClick=${() => setLogFor(null)}>Chiudi</button></div><pre class="log" style="margin-top:12px">${log || "(vuoto)"}</pre></div>`}
     <div class="rows">${st.modules.map((m) => html`<div class="item">
       <div>
-        <div class="row"><span class="t">${m.name}</span>${!m.enabled && html`<span class="pill">in pausa</span>`}${m.browser && html`<span class="chip sm">${I("browser")} usa LinkedIn</span>`}</div>
+        <div class="row"><span class="t">${m.name}</span>${!m.enabled ? html`<span class="pill">in pausa</span>` : h?.modules?.[m.id] && html`<span class=${"pill " + LEVEL[h.modules[m.id].level][0]}>${LEVEL[h.modules[m.id].level][1]}</span>`}${m.browser && html`<span class="chip sm">${I("browser")} usa LinkedIn</span>`}</div>
         <div class="d">${m.desc}</div>
+        ${m.enabled && h?.modules?.[m.id] && ["bloccato", "parziale"].includes(h.modules[m.id].level) && html`<div class=${"inline-note " + (h.modules[m.id].level === "bloccato" ? "err" : "warn")}>
+          <span>${h.modules[m.id].missing.length ? h.modules[m.id].missing.map((n) => h.needs[n]?.missing || n).join(" · ") : h.modules[m.id].note || "L'ultimo giro non è andato: apri il log."}</span>
+          <span class="row">${h.modules[m.id].missing.map((n) => html`<${FixButton} need=${n} />`)}</span>
+        </div>`}
         <div class="chips">
           <span class="chip">${I("orologio")} ${cronHuman(m.cron)}</span>
           ${m.enabled && html`<span class="chip">${I("calendario")} prossimo ${when(m.next_run)}</span>`}
@@ -580,8 +683,8 @@ function Strategy({ st, reload }) {
   useEffect(load, [f]);
   const aiRunning = job.busy || st.running.some((r) => r.target === "draft-strategy");
   useEffect(() => { if (!aiRunning) return; const t = setInterval(() => { reload(); load(); }, 5000); return () => clearInterval(t); }, [aiRunning, f]);
-  const writeWithAI = () => {
-    if (ss && !ss.untouched && !confirm("La tua AI scrive una nuova strategia leggendo knowledge base, problemi del target, voce e post pubblicati. Hai già modificato la tua: te la propongo e decidi tu se usarla. Procedo?")) return;
+  const writeWithAI = async () => {
+    if (ss && !ss.untouched && !(await ask({ title: "Riscrivo la strategia con la tua AI?", text: "Legge knowledge base, problemi del target, voce e post pubblicati. La tua l'hai modificata a mano: non la tocco, ti arriva come proposta e decidi tu.", ok: "Scrivila" }))) return;
     job.start("setup", "draft-strategy", () => { setF("strategy.md"); load(); reload(); });
   };
   const quick = async () => { await post("/api/strategy/generate", { force: false }); setF("strategy.md"); load(); setSaved("Partenza veloce scritta"); };
@@ -593,13 +696,13 @@ function Strategy({ st, reload }) {
       ${by && html`<span class="chip">${I("strategia")} ${by}</span>`}
     <//>
     ${aiRunning && html`<div class="card soft" style="margin-bottom:16px"><div class="row"><span class="pill run">in corso</span><b>La tua AI sta scrivendo la strategia</b></div><p class="hint" style="margin-top:6px">Legge knowledge base, problemi del target, voce e post pubblicati. Può volerci qualche minuto: se non hai toccato la strategia, la applico da sola.</p></div>`}
-    ${ss?.draft && !aiRunning && html`<div class="card" style="margin-bottom:16px;border:1.5px solid var(--accent)">
+    ${ss?.draft && !aiRunning && html`<div class="banner" style="margin-bottom:16px">
       <h3>La tua AI ha scritto una nuova strategia</h3>
       <p class="hint" style="margin-top:6px">${ss.untouched ? "Ha letto la tua knowledge base, i problemi del target, la voce e i post. Guardala e usala al posto della partenza veloce." : "Non l'ho applicata perché la tua l'hai modificata a mano. Guardala e decidi."}</p>
       <div class="row" style="margin-top:12px"><button class="btn primary" onClick=${apply}>Usa questa</button><button class="btn ghost" onClick=${() => setShowDraft(!showDraft)}>${showDraft ? "Nascondi" : "Guardala"}</button><button class="btn ghost" onClick=${discard}>Tieni la mia</button></div>
       ${showDraft && html`<pre class="log" style="margin-top:12px;white-space:pre-wrap;max-height:420px">${ss.draft_text}</pre>`}
     </div>`}
-    ${ss?.template && !aiRunning && html`<div class="card" style="margin-bottom:16px;border:1.5px solid var(--accent)">
+    ${ss?.template && !aiRunning && html`<div class="banner" style="margin-bottom:16px">
       <h3>La strategia è ancora il modello vuoto</h3>
       <p class="hint" style="margin-top:6px">Falla scrivere alla tua AI: legge la tua knowledge base, quello che hai messo nell'onboarding e i tuoi post. Oppure scrivila tu qui sotto.</p>
       <div class="row" style="margin-top:12px"><button class="btn primary" onClick=${writeWithAI}>✦ Scrivila con la tua AI</button><button class="btn ghost" onClick=${quick}>Partenza veloce dai dati dell'onboarding</button></div>
@@ -615,6 +718,7 @@ function Strategy({ st, reload }) {
 
 // ---------- ANALYTICS ----------
 const fmt = (n) => n == null ? "—" : Number(n).toLocaleString("it-IT");
+const median = (arr) => { const a = [...arr].sort((x, y) => x - y); return a.length ? a[Math.floor(a.length / 2)] : 0; };
 const ddmm = (d) => d ? new Date(d + "T12:00:00").toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" }) : "";
 
 // Barre verticali, una serie: barre sottili con angoli in alto, griglia leggera, tooltip al passaggio.
@@ -623,7 +727,7 @@ function BarChart({ data, height = 180, width = 640, unit = "" }) {
   if (!data.length) return html`<p class="hint">Ancora nessun dato.</p>`;
   const W = width, H = height, padL = 36, padB = 22, padT = 10;
   const max = Math.max(1, ...data.map((d) => d.value));
-  const step = (W - padL) / data.length, bw = Math.max(6, Math.min(36, step - 2));
+  const step = (W - padL) / data.length, bw = Math.max(6, Math.min(W < 400 ? 10 : 14, step - 2));
   const y = (v) => padT + (H - padT - padB) * (1 - v / max);
   const ticks = [0, max / 2, max];
   return html`<div class="chart" onMouseLeave=${() => setHov(null)}>
@@ -655,7 +759,8 @@ function HBars({ rows, field = "conv", label = "conversione" }) {
 function Overview() {
   const [days, setDays] = useState(90); const [a, setA] = useState(null);
   useEffect(() => { setA(null); api(`/api/analytics?days=${days}`).then(setA); }, [days]);
-  const K = a?.kpi;
+  const K = a?.kpi, P = a?.kpi_prev;
+  const prevLabel = days ? `ai ${days} giorni prima` : "";
   const tiles = K ? [["Lead", K.lead], ["Follower acquisiti", K.follower], ["Visite al profilo", K.visite], ["Commenti", K.commenti], ["Impressioni", K.impressioni], ["Post pubblicati", K.pubblicati, `${K.misurati} misurati`]] : [];
   const wk = a?.settimane || [];
   return html`<div class="stack" style="margin:0">
@@ -663,11 +768,16 @@ function Overview() {
       <span class="hint">Aggiornati dal Performance loop (lun e gio)</span></div>
     ${!a ? html`<p class="hint">Carico…</p>` : !K.misurati ? html`<div class="card"><h3>Ancora nessun post misurato</h3><p class="hint" style="margin-top:6px">I numeri arrivano dal Performance loop, che legge le statistiche dei tuoi post su LinkedIn col browser di Nest Signal. Pubblica, collega il browser (Impostazioni → Connessioni) e al primo giro vedi qui impressioni, follower, visite al profilo, commenti e lead per post.</p></div>` : html`
       <div class="kpis">
-        <div class="kpi main"><span>Conversione media</span><b>${fmt(K.conv_media)}</b><small>follower, visite, commenti e lead ogni 1.000 impressioni: il numero che conta</small></div>
-        ${tiles.map(([l, v, sub]) => html`<div class="kpi"><span>${l}</span><b>${fmt(v)}</b>${sub && html`<small>${sub}</small>`}</div>`)}
+        <${Metric} main label="Conversione media" value=${K.conv_media} unit="/ 1.000 impr." prev=${P?.conv_media} note=${P ? `rispetto ${prevLabel}` : "follower, visite, commenti e lead ogni 1.000 impressioni: il numero che conta"} />
+        <${Metric} label="Lead" value=${K.lead} prev=${P?.lead} note=${K.lead && K.impressioni ? `1 ogni ${fmt(Math.round(K.impressioni / K.lead))} impressioni` : "nessuno nel periodo"} />
+        <${Metric} label="Follower acquisiti" value=${K.follower} prev=${P?.follower} note=${K.pubblicati ? `${fmt(Math.round(K.follower / Math.max(1, K.misurati)))} per post` : ""} />
+        <${Metric} label="Visite al profilo" value=${K.visite} prev=${P?.visite} note=${K.pubblicati ? `${fmt(Math.round(K.visite / Math.max(1, K.misurati)))} per post` : ""} />
+        <${Metric} label="Commenti" value=${K.commenti} prev=${P?.commenti} note=${K.pubblicati ? `${fmt(Math.round(K.commenti / Math.max(1, K.misurati)))} per post` : ""} />
+        <${Metric} label="Impressioni" value=${K.impressioni} prev=${P?.impressioni} note=${K.misurati ? `mediana ${fmt(median(a.posts.filter((p) => p.misurato).map((p) => p.impressioni)))} per post` : ""} />
+        <${Metric} label="Post pubblicati" value=${K.pubblicati} prev=${P?.pubblicati} note=${`${K.misurati} misurati`} />
       </div>
-      <div class="card"><h3>Impressioni per settimana</h3><${BarChart} data=${wk.map((w) => ({ label: ddmm(w.settimana), value: w.impressioni, sub: `settimana del ${ddmm(w.settimana)} · ${w.post} post` }))} /></div>
-      <div class="grid3">${[["Follower acquisiti", "follower"], ["Visite al profilo", "visite"], ["Lead", "lead"]].map(([l, f]) => html`<div class="card"><h3>${l}</h3><${BarChart} width=${300} height=${190} data=${wk.map((w) => ({ label: ddmm(w.settimana), value: w[f], sub: `settimana del ${ddmm(w.settimana)}` }))} /></div>`)}</div>
+      <div class="card"><div class="shead"><h3>Impressioni per settimana</h3><div class="total"><b>${fmt(K.impressioni)}</b><small>impressioni</small></div></div><${BarChart} data=${wk.map((w) => ({ label: ddmm(w.settimana), value: w.impressioni, sub: `settimana del ${ddmm(w.settimana)} · ${w.post} post` }))} /></div>
+      <div class="grid3">${[["Follower acquisiti", "follower"], ["Visite al profilo", "visite"], ["Lead", "lead"]].map(([l, f]) => html`<div class="card"><div class="shead"><h3>${l}</h3><div class="total"><b>${fmt(K[f])}</b></div></div><${BarChart} width=${300} height=${190} data=${wk.map((w) => ({ label: ddmm(w.settimana), value: w[f], sub: `settimana del ${ddmm(w.settimana)}` }))} /></div>`)}</div>
       <div class="grid2">
         <div class="card"><h3>Per funzione</h3><p class="hint" style="margin:4px 0 12px">Conversione media: follower, visite, commenti e lead ogni 1.000 impressioni</p><${HBars} rows=${a.per_funzione} /></div>
         <div class="card"><h3>Per pattern di hook</h3><p class="hint" style="margin:4px 0 12px">Quali aperture portano persone</p><${HBars} rows=${a.per_pattern} /></div>
@@ -698,7 +808,7 @@ function Competitors({ st, reload }) {
   const load = () => api("/api/competitors").then(setD);
   useEffect(() => { load(); }, []);
   const add = async (c) => { setErr(""); try { await post("/api/competitors", c); setF({ name: "", url: "", note: "" }); load(); reload(); } catch (e) { setErr(e.message); } };
-  const remove = async (url) => { if (!confirm("Tolgo questo competitor dal radar?")) return; await post("/api/competitors/remove", { url }); load(); };
+  const remove = async (c) => { if (!(await ask({ title: `Togli ${c.name} dal radar?`, text: "Non lo leggo più dalla prossima settimana. I post già letti restano nello storico.", ok: "Togli", tone: "danger" }))) return; await post("/api/competitors/remove", { url: c.url }); load(); toast(`${c.name} tolto dal radar`); };
   const radar = st.modules.find((m) => m.id === "competitor-radar");
   const sum = Object.fromEntries((d?.summary?.competitor || []).map((c) => [c.url, c]));
   return html`<div>
@@ -711,7 +821,7 @@ function Competitors({ st, reload }) {
       <div class="stack" style="margin:0">
         ${d.list.length === 0 && html`<div class="card"><h3>Nessun competitor ancora</h3><p class="hint" style="margin-top:6px">Aggiungili qui accanto, oppure fai trovare alla tua AI chi vende al tuo stesso target e pubblica su LinkedIn.</p></div>`}
         <div class="compgrid">${d.list.map((c) => { const s = sum[c.url]; return html`<div class="card comp">
-          <div class="row" style="justify-content:space-between"><a href=${c.url} target="_blank" rel="noopener"><b>${c.name}</b> ↗</a><button class="btn small ghost" onClick=${() => remove(c.url)}>Togli</button></div>
+          <div class="row" style="justify-content:space-between"><a href=${c.url} target="_blank" rel="noopener"><b>${c.name}</b> ↗</a><button class="btn small ghost" onClick=${() => remove(c)}>Togli</button></div>
           ${c.note && html`<p class="hint">${c.note}</p>`}
           ${s ? html`<div class="mini">
             <div><span>Post/settimana</span><b>${fmt(s.frequenza_settimana)}</b></div>
@@ -754,17 +864,24 @@ const jobName = (st, id) => st?.modules?.find((m) => m.id === id)?.name || st?.s
 const TRIGGER = { orario: "all'orario", manuale: "lanciato da te", onboarding: "dall'onboarding", terminale: "dal terminale" };
 
 function Activity({ st }) {
-  const [list, setList] = useState([]); const [open, setOpen] = useState(null); const [log, setLog] = useState("");
+  const [list, setList] = useState(null); const [open, setOpen] = useState(null); const [log, setLog] = useState("");
   useEffect(() => { api("/api/runs").then(setList); }, []);
+  const dayLabel = (iso) => { const d = (iso || "").slice(0, 10), t = new Date().toISOString().slice(0, 10), y = new Date(Date.now() - 864e5).toISOString().slice(0, 10); return d === t ? "Oggi" : d === y ? "Ieri" : new Date(d + "T12:00:00").toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" }); };
+  const groups = {}; for (const r of list || []) (groups[dayLabel(r.started_at || r.queued_at)] ||= []).push(r);
+  const dur = (r) => r.started_at && r.ended_at ? Math.max(1, Math.round((new Date(r.ended_at) - new Date(r.started_at)) / 60000)) + " min" : "";
   return html`<div>
-    <${Hero} kicker="Attività" title="Ogni giro, con il suo log" />
+    <${Hero} kicker="Attività" title="Ogni giro, con il suo log" text="Cosa ha fatto ogni routine, quando, e com'è andata. Se qualcosa non va, il log dice perché." />
     ${open && html`<div class="card" style="margin-bottom:16px"><div class="row" style="justify-content:space-between"><h3>${I("log")} ${jobName(st, open.target)} ${pill(open.status)}</h3><button class="btn small ghost" onClick=${() => setOpen(null)}>Chiudi</button></div><pre class="log" style="margin-top:12px">${log || "(vuoto)"}</pre></div>`}
-    <div class="rows">${list.length ? list.map((r) => html`<div class="item">
-      <div><div class="row"><span class="t">${jobName(st, r.target)}</span>${pill(r.status)}</div>
-        ${r.error && r.status === "bloccato" && html`<div class="d">${r.error}</div>`}
-        <div class="chips"><span class="chip sm">${I("calendario")} ${when(r.started_at || r.queued_at)}</span><span class="chip sm">${r.kind === "setup" ? "Preparazione" : "Modulo"} · ${TRIGGER[r.trigger] || r.trigger}</span></div></div>
-      <div class="act"><button class="btn small ghost" onClick=${async () => { setOpen(r); setLog((await api(`/api/runs/${r.id}/log`)).log); scrollTo(0, 0); }}>${I("log")} Log</button></div>
-    </div>`) : html`<div class="card"><p class="hint">Nessun giro ancora.</p></div>`}</div>
+    ${!list ? html`<p class="hint">Carico…</p>` : !list.length ? html`<div class="card"><${Empty} icon="attivita" title="Nessun giro ancora" text="Le routine partono ai loro orari. Puoi lanciarne una subito dalla pagina Moduli."><a class="btn" href="#/moduli">Vai ai moduli</a><//></div>` :
+      Object.entries(groups).map(([day, runs]) => html`<section class="tgroup">
+        <div class="kicker" style="margin:4px 0 10px">${day}</div>
+        <div class="card tl">${runs.map((r) => html`<div class="trow">
+          <div class="ttime">${new Date(r.started_at || r.queued_at).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}<small>${dur(r)}</small></div>
+          <div style="min-width:0"><div class="row"><b>${jobName(st, r.target)}</b>${pill(r.status)}</div>
+            <div class="hint">${r.kind === "setup" ? "Preparazione" : "Modulo"} · ${TRIGGER[r.trigger] || r.trigger}${r.error ? " · " + r.error : ""}</div></div>
+          <button class="btn small ghost" onClick=${async () => { setOpen(r); setLog((await api(`/api/runs/${r.id}/log`)).log); scrollTo(0, 0); }}>${I("log")} Log</button>
+        </div>`)}</div>
+      </section>`)}
   </div>`;
 }
 
@@ -834,6 +951,7 @@ function Plan({ st, hash }) {
     ${view === "bacheca" ? html`<div class="board">${COLS.map((c) => html`<div class="bcol">
         <div class="bhead"><span>${c}</span><span class="count">${n(c)}</span></div>
         ${posts.filter((p) => p.stato === c).map((p) => html`<${PostCard} p=${p} />`)}
+        ${!n(c) && c !== "Idea" && html`<p class="colempty">${{ Bozza: "Le bozze del content engine arrivano qui.", "In revisione": "Quello che stai rileggendo.", "Da pubblicare": "Approva una bozza e finisce qui.", Pubblicato: "Lo segna Nest Signal quando lo trova su LinkedIn." }[c]}</p>`}
         ${c === "Idea" && html`<button class="addcard" onClick=${add}>+ Aggiungi</button>`}
       </div>`)}</div>` : html`<${Calendar} posts=${posts} />`}
   </div>`;
@@ -883,7 +1001,7 @@ function PostDetail({ id, st, back }) {
   useEffect(() => { api(`/api/posts/${id}`).then(setP); api("/api/posts").then((d) => setMeta(d)); }, [id]);
   if (!p) return html`<p class="hint">Carico…</p>`;
   const set = (k, v) => { setP({ ...p, [k]: v }); setSaved(""); };
-  const save = async (patch) => { const n = await put(`/api/posts/${id}`, patch || p); setP(n); setSaved("Salvato"); };
+  const save = async (patch) => { const n = await put(`/api/posts/${id}`, patch || p); setP(n); setSaved(""); toast(patch?.stato && patch.stato !== p.stato ? `Spostato in «${patch.stato}»` : "Salvato"); };
   const chars = (p.testo || "").length;
   return html`<div>
     <div class="row" style="margin-bottom:14px"><button class="btn small ghost" onClick=${back}>← Piano editoriale</button><span class=${"pill " + toneOf(p.stato)}>${p.stato}</span><span class="hint">${saved}</span></div>
@@ -897,9 +1015,9 @@ function PostDetail({ id, st, back }) {
         ${p.da_confermare && html`<div class="card soft"><b>${p.stato === "Pubblicato" ? "Da controllare" : "Da confermare prima di pubblicare"}</b><p class="hint" style="margin-top:6px;white-space:pre-wrap">${p.da_confermare}</p></div>`}
         <div class="row">
           <button class=${["Bozza", "In revisione", "Idea"].includes(p.stato) ? "btn" : "btn primary"} onClick=${() => save()}>Salva</button>
-          <button class="btn ghost" onClick=${() => { navigator.clipboard.writeText(`${p.testo || ""}`); setSaved("Testo copiato"); }}>Copia testo</button>
+          <button class="btn ghost" onClick=${() => { navigator.clipboard.writeText(`${p.testo || ""}`); toast("Testo copiato: incollalo su LinkedIn"); }}>Copia testo</button>
           ${["Bozza", "In revisione", "Idea"].includes(p.stato) && html`<button class="btn primary" onClick=${() => save({ ...p, stato: "Da pubblicare" })}>Approva</button>`}
-          ${p.stato === "Da pubblicare" && html`<button class="btn ghost" title="Di solito non serve: il Performance loop e l'Hook Lab lo rilevano da soli su LinkedIn" onClick=${() => { const l = prompt("Link del post pubblicato su LinkedIn (di solito non serve: Nest Signal lo rileva da solo)"); if (l) save({ ...p, stato: "Pubblicato", link_live: l }); }}>Segna a mano come pubblicato</button>`}
+          ${p.stato === "Da pubblicare" && html`<button class="btn ghost" title="Di solito non serve: il Performance loop e l'Hook Lab lo rilevano da soli su LinkedIn" onClick=${async () => { const l = await ask({ title: "Segna come pubblicato", text: "Di solito non serve: il Performance loop e l'Hook Lab lo trovano da soli su LinkedIn. Se vuoi farlo ora, incolla il link del post.", input: { placeholder: "https://www.linkedin.com/feed/update/…" }, ok: "Segna pubblicato" }); if (l) { await save({ ...p, stato: "Pubblicato", link_live: l }); toast("Segnato come pubblicato"); } }}>Segna a mano come pubblicato</button>`}
           ${p.stato !== "Scartato" && html`<button class="btn ghost" onClick=${() => save({ ...p, stato: "Scartato" })}>Scarta</button>`}
         </div>
       </div>
@@ -934,9 +1052,9 @@ function App() {
   useEffect(() => { reload(); const t = setInterval(reload, 15000); return () => clearInterval(t); }, []);
   if (err && !st) return html`<div class="main"><h2>Il pannello non risponde</h2><p class="hint">${err}. Riprovo da solo ogni 15 secondi: controlla che nest-signal sia acceso.</p></div>`;
   if (!st) return html`<div class="main"><p class="hint">Avvio…</p></div>`;
-  if (!st.config.onboarding.done || hash.startsWith("#/onboarding")) return html`<${Onboarding} st=${st} reload=${reload} />`;
+  if (!st.config.onboarding.done || hash.startsWith("#/onboarding")) return html`<${Onboarding} st=${st} reload=${reload} /><${Toasts} /><${Modal} />`;
   const Page = { "#/oggi": Today, "#/piano": Plan, "#/moduli": Modules, "#/strategia": Strategy, "#/risultati": Results, "#/analytics": Results, "#/competitor": Competitors, "#/attivita": Activity, "#/impostazioni": Settings }["#/" + (hash.split("?")[0].split("/")[1] || "oggi")] || Today;
-  return html`<${Shell} st=${st} hash=${hash}><${Page} st=${st} reload=${reload} hash=${hash} /><//>`;
+  return html`<${Shell} st=${st} hash=${hash}><${Page} st=${st} reload=${reload} hash=${hash} /><//><${Toasts} /><${Modal} />`;
 }
 
 render(html`<${App} />`, document.getElementById("app"));
