@@ -1,0 +1,33 @@
+{
+ "kicker": "Analisi / dove vanno le ore",
+ "titolo": "28 ore a settimana",
+ "titolo_arancio": "in cose che non sono il tuo lavoro.",
+ "grafico": {
+  "tipo": "barre",
+  "didascalia": "Ore a settimana della founder →",
+  "unita": "h",
+  "righe": [
+   {
+    "etichetta": "Approvare",
+    "icona": "check",
+    "valore": 9,
+    "evidenza": true
+   },
+   {
+    "etichetta": "Assegnare",
+    "icona": "team",
+    "valore": 7
+   },
+   {
+    "etichetta": "Feedback",
+    "icona": "chat",
+    "valore": 6
+   },
+   {
+    "etichetta": "Preventivi",
+    "icona": "documento",
+    "valore": 6
+   }
+  ]
+ }
+}

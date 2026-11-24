@@ -1,0 +1,30 @@
+{
+ "kicker": "Metodo / come lavoriamo",
+ "titolo": "Prima il processo,",
+ "titolo_arancio": "poi l'AI.",
+ "chiusura": "Se automatizzi il caos,",
+ "chiusura_arancio": "ottieni caos più veloce.",
+ "grafico": {
+  "tipo": "passi",
+  "didascalia": "Ogni progetto, in quest'ordine →",
+  "passi": [
+   {
+    "titolo": "Analisi",
+    "icona": "occhio"
+   },
+   {
+    "titolo": "Processo",
+    "icona": "lista"
+   },
+   {
+    "titolo": "Sistema",
+    "icona": "notion"
+   },
+   {
+    "titolo": "AI",
+    "icona": "robot",
+    "evidenza": true
+   }
+  ]
+ }
+}

@@ -1,0 +1,20 @@
+{
+  "kicker": "Follow-up / il mio sistema",
+  "titolo": "Il tuo prossimo cliente è nel CRM",
+  "titolo_arancio": "e ti sei dimenticato di chiamarlo.",
+  "chiusura": "La telefonata la faccio io.",
+  "chiusura_arancio": "Ricordarmela no.",
+  "grafico": {
+    "tipo": "timeline",
+    "didascalia": "Un contatto nel CRM, nel tempo →",
+    "pillola": "Io alzo il telefono",
+    "righe": [
+      {"titolo": "CRM", "icona": "notion", "testo": "Mi dice quando fare il follow-up.",
+       "eventi": [{"x": 0.12, "tipo": "grande", "etichetta": "follow-up"}, {"x": 0.5, "tipo": "grande", "etichetta": "follow-up"}, {"x": 0.88, "tipo": "grande", "etichetta": "follow-up"}]},
+      {"titolo": "Newsletter", "testo": "Tiene i contatti allineati su quello che faccio.",
+       "serie": {"n": 9, "etichetta": "un aggiornamento al mese"}},
+      {"titolo": "Agent mensile", "testo": "Mi dice chi richiamare, quando ci eravamo detti di risentirci.",
+       "eventi": [{"x": 0.74, "tipo": "bersaglio", "etichetta": "\"risentiamoci\"", "sopra": true}]}
+    ]
+  }
+}

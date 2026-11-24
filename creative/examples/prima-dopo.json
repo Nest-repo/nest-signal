@@ -1,0 +1,56 @@
+{
+ "kicker": "Lead / chi li richiama",
+ "titolo": "Se stai per comprare altri lead,",
+ "titolo_arancio": "chi li richiama?",
+ "grafico": {
+  "tipo": "prima_dopo",
+  "didascalia": "Un contatto dopo il primo messaggio →",
+  "prima": {
+   "titolo": "Oggi",
+   "centro": "persona",
+   "voci": [
+    {
+     "icona": "database",
+     "etichetta": "CRM a mano"
+    },
+    {
+     "icona": "sveglia",
+     "etichetta": "sveglia"
+    },
+    {
+     "icona": "lista",
+     "etichetta": "Excel"
+    },
+    {
+     "icona": "mail",
+     "etichetta": "mail"
+    },
+    {
+     "icona": "domanda",
+     "etichetta": "chi era?"
+    }
+   ]
+  },
+  "dopo": {
+   "titolo": "Col sistema",
+   "voci": [
+    {
+     "icona": "slack",
+     "etichetta": "Lista ogni mattina"
+    },
+    {
+     "icona": "notion",
+     "etichetta": "CRM da solo"
+    },
+    {
+     "icona": "calendario",
+     "etichetta": "Follow-up fissati"
+    }
+   ],
+   "risultato": {
+    "icona": "telefono",
+    "etichetta": "Resta la telefonata"
+   }
+  }
+ }
+}

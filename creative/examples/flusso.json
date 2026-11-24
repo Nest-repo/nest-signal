@@ -1,0 +1,31 @@
+{
+ "kicker": "Call / il mio sistema",
+ "titolo": "Finita la call,",
+ "titolo_arancio": "il recap è già nella mail del cliente.",
+ "grafico": {
+  "tipo": "flusso",
+  "didascalia": "Cosa succede dopo ogni call →",
+  "ingressi": [
+   {
+    "icona": "telefono",
+    "etichetta": "Call"
+   },
+   {
+    "icona": "documento",
+    "etichetta": "Transcript"
+   },
+   {
+    "icona": "database",
+    "etichetta": "CRM"
+   }
+  ],
+  "sistema": {
+   "icona": "claude",
+   "etichetta": "Agente"
+  },
+  "risultato": {
+   "icona": "mail",
+   "etichetta": "Recap inviato"
+  }
+ }
+}

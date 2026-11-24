@@ -1,0 +1,16 @@
+{
+ "kicker": "Numeri / outbound",
+ "titolo": "77 connessioni su 240.",
+ "titolo_arancio": "Senza scrivere un messaggio a mano.",
+ "grafico": {
+  "tipo": "numero",
+  "didascalia": "Campagna di ottobre →",
+  "numero": "77",
+  "unita": "accettati su 240 inviti",
+  "punti": {
+   "totale": 240,
+   "evidenza": 77,
+   "legenda": "● un invito = un pallino"
+  }
+ }
+}
